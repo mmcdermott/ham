@@ -56,11 +56,12 @@ export function useDemoCanvas(initial: DemoCanvasState): DemoCanvas {
       makeChild(event.fromSurfaceId, event.fromBlockId, event.suggestedTitle || "New sibling"),
     reorderBranchSiblings: async ({ orderedEdgeIds }) => {
       const orderById = new Map(orderedEdgeIds.map((eid, i) => [eid, i]));
-      let next: HamBranchEdge[] = edgesRef.current;
-      setEdges((e) => {
-        next = e.map((x) => (orderById.has(x.id) ? { ...x, order: orderById.get(x.id)! } : x));
-        return next;
-      });
+      // Compute the reordered array up front so the handler resolves with the
+      // confirmed order (the state updater runs later, asynchronously).
+      const next = edgesRef.current.map((x) =>
+        orderById.has(x.id) ? { ...x, order: orderById.get(x.id)! } : x,
+      );
+      setEdges(next);
       return next;
     },
     deleteSurface: async ({ surfaceId, descendantSurfaceIds }) => {

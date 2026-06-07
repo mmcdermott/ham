@@ -110,6 +110,9 @@ export function App() {
 
   return (
     <div className="layout">
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <aside className="sidebar">
         <a className="brand" href="#overview">
           <span className="brand-mark">▦</span>
@@ -118,7 +121,7 @@ export function App() {
             <small>Hierarchical, Annotatable Markdown</small>
           </span>
         </a>
-        <nav>
+        <nav aria-label="Primary">
           {groups.map((group) => (
             <div key={group} className="nav-group">
               <div className="nav-group-label">{group}</div>
@@ -144,7 +147,8 @@ export function App() {
           GitHub ↗
         </a>
       </aside>
-      <main className="content" key={section.id}>
+      <main className="content" id="main" tabIndex={-1} key={section.id}>
+        <h1 className="visually-hidden">{section.label}</h1>
         {section.render()}
       </main>
     </div>
