@@ -1,20 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Editor } from "@tiptap/core";
 import type { EditorState } from "@tiptap/pm/state";
 import { EditorContent, useEditor } from "@tiptap/react";
+import * as Y from "yjs";
 
 import {
   AnnotationLayer,
   annotationLayerKey,
   type AnnotationLayerContext,
 } from "./annotations/plugin";
+import { createHocuspocusCollab, flushAndDestroy } from "./collab/hocuspocus";
 import { BlockGutter, blockGutterKey, type BlockGutterContext } from "./extensions/block-gutter";
-import { createHamEditorExtensions } from "./extensions/createHamEditorExtensions";
+import {
+  createHamEditorExtensions,
+  type HamCollabBinding,
+} from "./extensions/createHamEditorExtensions";
+import { stripStableIds } from "./markdown/stable-id";
 import { getHamSurfaceSnapshot } from "./snapshot/getHamSurfaceSnapshot";
 import type {
   HamBlockId,
   HamBranchChildSummary,
   HamBranchRequestEvent,
+  HamCollaborationProvider,
   HamEditorHandle,
   HamEditorProps,
   HamEditorSavePayload,
@@ -47,11 +54,14 @@ function activeBlockIdAt(state: EditorState): HamBlockId | null {
 }
 
 /**
- * Renders and edits one surface: a collaborative-capable, block-centric markdown
- * document rooted at a stable block. In Phase 1 this is the local (non-collab)
- * editor; collaboration is layered on in Phase 3.
+ * The editor view itself. Mounted directly for local editing, or by the collab
+ * gate (post-sync) with a `collab` binding to a shared Y.Doc.
  */
-export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<AnnotationData>) {
+function HamEditorInner<AnnotationData = unknown>(
+  props: HamEditorProps<AnnotationData> & { collab?: HamCollabBinding; seedAllowed?: boolean },
+) {
+  const collab = props.collab;
+  const seededRef = useRef(false);
   const {
     surfaceId,
     value,
@@ -99,20 +109,24 @@ export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<Annota
 
   const extensions = useMemo(
     () => [
-      ...createHamEditorExtensions({ collaboration: !!props.collaboration?.enabled }),
+      ...createHamEditorExtensions(collab ? { collab } : {}),
       BlockGutter.configure({ getContext: () => ctxRef.current }),
       AnnotationLayer.configure({ getContext: () => annoCtxRef.current }),
     ],
-    // Extensions are intentionally built once; surface identity is stable.
+    // Extensions are intentionally built once; surface/collab identity is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
   const initialContent = useMemo(
     () =>
-      value.kind === "markdown"
-        ? { content: value.markdown, contentType: "markdown" as const }
-        : { content: value.json as object },
+      // In collab mode the Y.Doc is the source of truth — start empty and seed
+      // only if the synced doc is empty (below). Otherwise seed from `value`.
+      collab
+        ? { content: "" }
+        : value.kind === "markdown"
+          ? { content: value.markdown, contentType: "markdown" as const }
+          : { content: value.json as object },
     // Treat value as the initial content; the host owns subsequent updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -246,6 +260,28 @@ export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<Annota
     onReadyRef.current(handle);
   }, [editor, surfaceId, snapshotOf, buildSavePayload]);
 
+  // Collaboration seed-if-empty (spec §5.14): the gate mounts this only after
+  // the provider has synced, so `editor.isEmpty` reflects the server's state. We
+  // seed the initial markdown only when the synced doc is empty, and never emit
+  // an update (which would trigger a save of content we just loaded).
+  useEffect(() => {
+    // A ref guard makes this a true one-time bootstrap regardless of how often
+    // the (freshly-constructed) `collab` object changes identity across renders
+    // — otherwise a re-render while the doc is empty would *resurrect* content
+    // the user just deleted. Seed only after a *real* sync (`seedAllowed`), never
+    // on the timeout fallback, so late-arriving server state can't duplicate it.
+    if (seededRef.current || !editor || !collab || !props.seedAllowed) return;
+    if (value.kind !== "markdown") return; // json seeding into a Y.Doc is unsupported
+    seededRef.current = true;
+    if (editor.isEmpty) {
+      editor.commands.setContent(stripStableIds(value.markdown).trim(), {
+        emitUpdate: false,
+        // contentType is added by @tiptap/markdown's SetContentOptions augmentation
+        contentType: "markdown",
+      } as Parameters<typeof editor.commands.setContent>[1]);
+    }
+  }, [editor, collab, props.seedAllowed, value]);
+
   // Reflect editable changes.
   useEffect(() => {
     editor?.setEditable(editable);
@@ -259,4 +295,111 @@ export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<Annota
       <EditorContent editor={editor} />
     </div>
   );
+}
+
+/**
+ * Collaboration gate (spec §5.14): owns the Y.Doc, opens the transport via the
+ * runtime, and **delays mounting the editor until the provider has synced** — so
+ * ProseMirror never binds to the Y.Doc before the server's state arrives (which
+ * would merge an empty default paragraph into the real content). Flushes and
+ * destroys the provider on unmount.
+ */
+function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<AnnotationData>) {
+  const config = props.collaboration!;
+  // The editor must bind to the SAME Y.Doc the transport syncs. Prefer the
+  // injected runtime's doc, then config.ydoc, else create one.
+  const [ydoc] = useState<Y.Doc>(
+    () =>
+      (config.runtime?.ydoc as Y.Doc | undefined) ??
+      (config.ydoc as Y.Doc | undefined) ??
+      new Y.Doc(),
+  );
+  const runtime = useMemo(
+    () => config.runtime ?? createHocuspocusCollab(config, ydoc),
+    // Build the runtime once for this doc/config.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ydoc],
+  );
+
+  const [provider, setProvider] = useState<HamCollaborationProvider | null>(null);
+  // `synced` is a *real* sync (safe to seed); `timedOut` only unblocks mounting.
+  const [synced, setSynced] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let created: HamCollaborationProvider | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    void (async () => {
+      try {
+        const p = await runtime.connect();
+        if (cancelled) return void p.destroy();
+        created = p;
+        setProvider(p);
+        if (p.synced) setSynced(true);
+        else
+          p.on("synced", () => {
+            if (!cancelled) setSynced(true);
+          });
+        // On timeout, unblock mounting but do NOT mark synced — seeding stays
+        // gated on a real sync so late server state can't be duplicated.
+        if (config.initialSyncTimeoutMs) {
+          timer = setTimeout(() => {
+            if (!cancelled) setTimedOut(true);
+          }, config.initialSyncTimeoutMs);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "collaboration failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      setProvider(null);
+      setSynced(false);
+      setTimedOut(false);
+      if (created) flushAndDestroy(created);
+    };
+  }, [runtime, config.initialSyncTimeoutMs]);
+
+  // Stable collab binding so the inner editor's effects don't churn on identity.
+  const collab = useMemo<HamCollabBinding | null>(
+    () => (provider ? { ydoc, provider, ...(config.user ? { user: config.user } : {}) } : null),
+    [ydoc, provider, config.user],
+  );
+
+  if (error) {
+    const ErrorState = props.slots?.ErrorState;
+    return ErrorState ? (
+      <ErrorState surfaceId={props.surfaceId} error={new Error(error)} />
+    ) : (
+      <div className="ham-editor ham-editor-error" data-surface-id={props.surfaceId}>
+        Collaboration error: {error}
+      </div>
+    );
+  }
+  if (!collab || (!synced && !timedOut)) {
+    const LoadingState = props.slots?.LoadingState;
+    return LoadingState ? (
+      <LoadingState surfaceId={props.surfaceId} />
+    ) : (
+      <div className="ham-editor ham-editor-loading" data-surface-id={props.surfaceId}>
+        Connecting…
+      </div>
+    );
+  }
+  return <HamEditorInner {...props} collab={collab} seedAllowed={synced} />;
+}
+
+/**
+ * Renders and edits one surface: a collaborative-capable, block-centric markdown
+ * document rooted at a stable block. Routes to the collaboration gate when
+ * `collaboration.enabled`, otherwise renders the local editor directly.
+ */
+export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<AnnotationData>) {
+  if (props.collaboration?.enabled) {
+    return <CollabHamEditor {...props} />;
+  }
+  return <HamEditorInner {...props} />;
 }
