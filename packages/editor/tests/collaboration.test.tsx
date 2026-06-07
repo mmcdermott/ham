@@ -82,6 +82,38 @@ describe("collaboration", () => {
     expect((md.match(/Body\./g) ?? []).length).toBe(1);
   });
 
+  it("does not resurrect deleted content when the parent re-renders", async () => {
+    const shared = new Y.Doc();
+    const rt = fakeRuntime(shared);
+    let handle: HamEditorHandle | null = null;
+    const view = (activeBlockId: string | null) => (
+      <HamEditor
+        surfaceId="s"
+        rootBlockId="blk_root"
+        value={{ kind: "markdown", markdown: "# Keep\n\nme." }}
+        collaboration={collabConfig(shared, rt)}
+        activeBlockId={activeBlockId}
+        onReady={(h) => {
+          handle = h;
+        }}
+      />
+    );
+    const { rerender } = render(view(null));
+    await waitFor(() => expect(handle!.getMarkdown()).toContain("Keep"));
+
+    // The user deletes everything → the doc is empty.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const editor = handle!.getUnsafeTiptapEditor() as any;
+    editor.chain().selectAll().deleteSelection().run();
+    await waitFor(() => expect(editor.isEmpty).toBe(true));
+
+    // A re-render (new prop) must NOT re-seed the deleted content.
+    rerender(view("blk_x"));
+    rerender(view("blk_y"));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(handle!.getMarkdown()).not.toContain("Keep");
+  });
+
   it("keeps block ids unique after collaborative edits", async () => {
     const shared = new Y.Doc();
     const rt = fakeRuntime(shared);

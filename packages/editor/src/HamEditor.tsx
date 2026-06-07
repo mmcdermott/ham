@@ -58,9 +58,10 @@ function activeBlockIdAt(state: EditorState): HamBlockId | null {
  * gate (post-sync) with a `collab` binding to a shared Y.Doc.
  */
 function HamEditorInner<AnnotationData = unknown>(
-  props: HamEditorProps<AnnotationData> & { collab?: HamCollabBinding },
+  props: HamEditorProps<AnnotationData> & { collab?: HamCollabBinding; seedAllowed?: boolean },
 ) {
   const collab = props.collab;
+  const seededRef = useRef(false);
   const {
     surfaceId,
     value,
@@ -264,8 +265,14 @@ function HamEditorInner<AnnotationData = unknown>(
   // seed the initial markdown only when the synced doc is empty, and never emit
   // an update (which would trigger a save of content we just loaded).
   useEffect(() => {
-    if (!editor || !collab) return;
+    // A ref guard makes this a true one-time bootstrap regardless of how often
+    // the (freshly-constructed) `collab` object changes identity across renders
+    // — otherwise a re-render while the doc is empty would *resurrect* content
+    // the user just deleted. Seed only after a *real* sync (`seedAllowed`), never
+    // on the timeout fallback, so late-arriving server state can't duplicate it.
+    if (seededRef.current || !editor || !collab || !props.seedAllowed) return;
     if (value.kind !== "markdown") return; // json seeding into a Y.Doc is unsupported
+    seededRef.current = true;
     if (editor.isEmpty) {
       editor.commands.setContent(stripStableIds(value.markdown).trim(), {
         emitUpdate: false,
@@ -273,9 +280,7 @@ function HamEditorInner<AnnotationData = unknown>(
         contentType: "markdown",
       } as Parameters<typeof editor.commands.setContent>[1]);
     }
-    // Seed exactly once per editor.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, collab]);
+  }, [editor, collab, props.seedAllowed, value]);
 
   // Reflect editable changes.
   useEffect(() => {
@@ -301,7 +306,14 @@ function HamEditorInner<AnnotationData = unknown>(
  */
 function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<AnnotationData>) {
   const config = props.collaboration!;
-  const [ydoc] = useState<Y.Doc>(() => (config.ydoc as Y.Doc | undefined) ?? new Y.Doc());
+  // The editor must bind to the SAME Y.Doc the transport syncs. Prefer the
+  // injected runtime's doc, then config.ydoc, else create one.
+  const [ydoc] = useState<Y.Doc>(
+    () =>
+      (config.runtime?.ydoc as Y.Doc | undefined) ??
+      (config.ydoc as Y.Doc | undefined) ??
+      new Y.Doc(),
+  );
   const runtime = useMemo(
     () => config.runtime ?? createHocuspocusCollab(config, ydoc),
     // Build the runtime once for this doc/config.
@@ -310,7 +322,9 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
   );
 
   const [provider, setProvider] = useState<HamCollaborationProvider | null>(null);
+  // `synced` is a *real* sync (safe to seed); `timedOut` only unblocks mounting.
   const [synced, setSynced] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -328,10 +342,11 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
           p.on("synced", () => {
             if (!cancelled) setSynced(true);
           });
-        // Fall through to seeding if initial sync never arrives.
+        // On timeout, unblock mounting but do NOT mark synced — seeding stays
+        // gated on a real sync so late server state can't be duplicated.
         if (config.initialSyncTimeoutMs) {
           timer = setTimeout(() => {
-            if (!cancelled) setSynced(true);
+            if (!cancelled) setTimedOut(true);
           }, config.initialSyncTimeoutMs);
         }
       } catch (err) {
@@ -343,9 +358,16 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
       if (timer) clearTimeout(timer);
       setProvider(null);
       setSynced(false);
+      setTimedOut(false);
       if (created) flushAndDestroy(created);
     };
   }, [runtime, config.initialSyncTimeoutMs]);
+
+  // Stable collab binding so the inner editor's effects don't churn on identity.
+  const collab = useMemo<HamCollabBinding | null>(
+    () => (provider ? { ydoc, provider, ...(config.user ? { user: config.user } : {}) } : null),
+    [ydoc, provider, config.user],
+  );
 
   if (error) {
     const ErrorState = props.slots?.ErrorState;
@@ -357,7 +379,7 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
       </div>
     );
   }
-  if (!provider || !synced) {
+  if (!collab || (!synced && !timedOut)) {
     const LoadingState = props.slots?.LoadingState;
     return LoadingState ? (
       <LoadingState surfaceId={props.surfaceId} />
@@ -367,12 +389,7 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
       </div>
     );
   }
-  return (
-    <HamEditorInner
-      {...props}
-      collab={{ ydoc, provider, ...(config.user ? { user: config.user } : {}) }}
-    />
-  );
+  return <HamEditorInner {...props} collab={collab} seedAllowed={synced} />;
 }
 
 /**
