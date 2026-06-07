@@ -216,17 +216,47 @@ describe("HamCanvas", () => {
         handlers={makeHandlers()}
       />,
     );
-    let aFrame: Element | null = null;
+    let collapseBtn: HTMLElement | null = null;
     await waitFor(() => {
-      aFrame = container.querySelector('[data-surface-id="s_a"]');
-      expect(aFrame).not.toBeNull();
+      collapseBtn = container.querySelector<HTMLElement>(
+        '[data-surface-id="s_a"] .ham-surface-collapse',
+      );
+      expect(collapseBtn).not.toBeNull();
     });
-    expect(aFrame!.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(aFrame!.querySelector<HTMLElement>(".ham-surface-collapse")!);
+    expect(collapseBtn!.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(collapseBtn!);
     await waitFor(() => {
-      const el = container.querySelector('[data-surface-id="s_a"]')!;
-      expect(el.getAttribute("aria-expanded")).toBe("false");
+      const btn = container.querySelector('[data-surface-id="s_a"] .ham-surface-collapse')!;
+      expect(btn.getAttribute("aria-expanded")).toBe("false");
     });
+  });
+
+  it("does not navigate on Alt+Arrow originating from inside the editor", async () => {
+    const onActiveChange = vi.fn();
+    const surfaces = {
+      s_root: surface("s_root", "# Root\n\n## A", "Root"),
+      s_a: surface("s_a", "# A branch", "A"),
+    };
+    const edges: HamBranchEdge[] = [
+      { id: "e_a", fromSurfaceId: "s_root", fromBlockId: "blk_A", toSurfaceId: "s_a", order: 0 },
+    ];
+    const { container } = render(
+      <HamCanvas
+        rootSurfaceId="s_root"
+        surfaces={surfaces}
+        branchEdges={edges}
+        handlers={makeHandlers()}
+        onActiveChange={onActiveChange}
+      />,
+    );
+    let editorEl: Element | null = null;
+    await waitFor(() => {
+      editorEl = container.querySelector(".ham-editor .ProseMirror");
+      expect(editorEl).not.toBeNull();
+    });
+    // Alt+ArrowRight from inside the editor must not jump surfaces (word nav).
+    fireEvent.keyDown(editorEl!, { key: "ArrowRight", altKey: true, bubbles: true });
+    expect(onActiveChange).not.toHaveBeenCalled();
   });
 
   it("activates a surface when its preview is opened", async () => {

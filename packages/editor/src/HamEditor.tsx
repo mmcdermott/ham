@@ -151,6 +151,9 @@ function HamEditorInner<AnnotationData = unknown>(
     immediatelyRender: true,
     ...initialContent,
     onUpdate({ editor }) {
+      // The open popover anchors to a now-possibly-stale annotation element;
+      // close it on edit (it reopens on the next click against fresh decorations).
+      setOpenAnnotation(null);
       onChange?.({
         surfaceId,
         content: { kind: "tiptap-json", json: editor.getJSON() },
@@ -248,7 +251,7 @@ function HamEditorInner<AnnotationData = unknown>(
           context: props.annotationContext ?? {},
           surfaceId,
           rootBlockId,
-          onOpen: (hit, rect) => setOpenAnnotation({ hit, rect }),
+          onOpen: (hit, element) => setOpenAnnotation({ hit, element }),
         }
       : null;
     if (editor) {

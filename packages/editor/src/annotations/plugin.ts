@@ -23,7 +23,7 @@ export interface AnnotationLayerContext<Ctx = unknown> {
   surfaceId: HamSurfaceId;
   rootBlockId: string;
   /** Called when an annotation with a render component is clicked. */
-  onOpen?: (hit: HamAnnotationHit, rect: DOMRect) => void;
+  onOpen?: (hit: HamAnnotationHit, element: HTMLElement) => void;
 }
 
 interface AnnotationPluginValue {
@@ -202,7 +202,7 @@ export const AnnotationLayer = Extension.create<AnnotationLayerOptions>({
               const hit = value?.hitsById.get(id);
               const ctx = getContext();
               if (hit && ctx?.onOpen) {
-                ctx.onOpen(hit, el.getBoundingClientRect());
+                ctx.onOpen(hit, el);
                 return true;
               }
               return false;

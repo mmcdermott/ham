@@ -15,7 +15,8 @@ import type { HamAnnotationHit, HamAnnotationType } from "../types";
 
 export interface OpenAnnotation {
   hit: HamAnnotationHit;
-  rect: DOMRect;
+  /** The live annotation element, so the popover tracks scroll/layout shifts. */
+  element: HTMLElement;
 }
 
 export interface AnnotationPopoverProps<Ctx = unknown> {
@@ -54,9 +55,9 @@ export function AnnotationPopover<Ctx = unknown>({
   const { getFloatingProps } = useInteractions([dismiss, role]);
 
   useEffect(() => {
-    if (open) {
-      refs.setReference({ getBoundingClientRect: () => open.rect });
-    }
+    // Reference the live element so autoUpdate re-anchors on scroll/resize and
+    // attaches to the annotation's scroll ancestors.
+    if (open) refs.setReference(open.element);
   }, [open, refs]);
 
   if (!open || !type?.render) return null;
