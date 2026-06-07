@@ -70,9 +70,11 @@ export function useHamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   const [collapsedSurfaceIds, setCollapsed] = useState<Set<HamSurfaceId>>(new Set());
   const [pendingSurfaceIds, setPending] = useState<Set<HamSurfaceId>>(new Set());
   const onActiveChange = props.onActiveChange;
-  // Keep a live ref so callbacks don't capture stale edges.
+  // Keep live refs so async callbacks don't read stale edges / active id.
   const edgesRef = useRef(props.branchEdges);
   edgesRef.current = props.branchEdges;
+  const activeRef = useRef(activeSurfaceId);
+  activeRef.current = activeSurfaceId;
 
   const activate = useCallback(
     (surfaceId: HamSurfaceId, blockId: HamBlockId | null = null) => {
@@ -172,17 +174,19 @@ export function useHamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   const removeSurface = useCallback(
     async (surfaceId: HamSurfaceId) => {
       if (!props.handlers.deleteSurface) return;
-      const edges = edgesRef.current;
-      const incomingEdgeId = edges.find((e) => e.toSurfaceId === surfaceId)?.id;
-      // Collect descendants for the host to validate against its delete policy.
+      const edgesBefore = edgesRef.current;
+      const parentSurfaceId = edgesBefore.find((e) => e.toSurfaceId === surfaceId)?.fromSurfaceId;
+      const incomingEdgeId = edgesBefore.find((e) => e.toSurfaceId === surfaceId)?.id;
+      // Collect the deleted subtree (surface + descendants) for the host to
+      // validate against its delete policy, and to drive re-activation/eviction.
       const descendantSurfaceIds: HamSurfaceId[] = [];
+      const removedSet = new Set<HamSurfaceId>([surfaceId]);
       const queue = [surfaceId];
-      const seen = new Set<HamSurfaceId>([surfaceId]);
       while (queue.length) {
         const cur = queue.shift()!;
-        for (const e of edges.filter((x) => x.fromSurfaceId === cur)) {
-          if (!seen.has(e.toSurfaceId)) {
-            seen.add(e.toSurfaceId);
+        for (const e of edgesBefore.filter((x) => x.fromSurfaceId === cur)) {
+          if (!removedSet.has(e.toSurfaceId)) {
+            removedSet.add(e.toSurfaceId);
             descendantSurfaceIds.push(e.toSurfaceId);
             queue.push(e.toSurfaceId);
           }
@@ -195,20 +199,22 @@ export function useHamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
           descendantSurfaceIds,
           policy: behavior.deleteSurfacePolicy,
         });
-        if (activeSurfaceId === surfaceId) {
-          const parent = edges.find((e) => e.toSurfaceId === surfaceId)?.fromSurfaceId;
-          activate(parent ?? props.rootSurfaceId, null);
+        // If the (live) active surface was deleted or orphaned by this delete,
+        // re-activate the deleted surface's parent so it doesn't vanish.
+        if (removedSet.has(activeRef.current)) {
+          activate(parentSurfaceId ?? props.rootSurfaceId, null);
         }
+        // Evict the snapshot cache for everything the host removed (prevents a
+        // stale snapshot corrupting ordering if a surface id is later reused).
+        setSnapshots((prev) => {
+          const next = { ...prev };
+          delete next[surfaceId];
+          for (const d of descendantSurfaceIds) delete next[d];
+          return next;
+        });
       });
     },
-    [
-      props.handlers,
-      behavior.deleteSurfacePolicy,
-      withPending,
-      activeSurfaceId,
-      activate,
-      props.rootSurfaceId,
-    ],
+    [props.handlers, behavior.deleteSurfacePolicy, withPending, activate, props.rootSurfaceId],
   );
 
   const activePath = useMemo(

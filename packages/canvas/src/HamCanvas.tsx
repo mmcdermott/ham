@@ -72,19 +72,27 @@ function SurfaceItem({ item, canvas, props, sortable }: ItemProps) {
   // Debounced persistence through the host's saveSurface handler.
   const handleRef = useRef<HamEditorHandle | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveSurface = props.handlers.saveSurface;
+  const saveSurfaceRef = useRef(props.handlers.saveSurface);
+  saveSurfaceRef.current = props.handlers.saveSurface;
   const scheduleSave = () => {
-    if (!saveSurface) return;
+    if (!saveSurfaceRef.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       const handle = handleRef.current;
-      if (!handle) return;
-      void handle.save().then((payload) => saveSurface(payload));
+      const save = saveSurfaceRef.current;
+      if (!handle || !save) return;
+      void handle.save().then((payload) => save(payload));
     }, 800);
   };
+  // Flush any pending edit on unmount so edits aren't lost when the surface
+  // leaves the projection (navigation/reshape), not only when the timer fires.
   useEffect(
     () => () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (!saveTimer.current) return;
+      clearTimeout(saveTimer.current);
+      const handle = handleRef.current;
+      const save = saveSurfaceRef.current;
+      if (handle && save) void handle.save().then((payload) => save(payload));
     },
     [],
   );
@@ -175,6 +183,9 @@ function SurfaceItem({ item, canvas, props, sortable }: ItemProps) {
               : {})}
             onReady={(handle) => {
               handleRef.current = handle;
+              // Seed the snapshot cache immediately so this surface's child
+              // column orders by document preorder before any edit.
+              canvas.actions.updateSnapshot(surface.id, handle.getSnapshot());
             }}
             onChange={scheduleSave}
             onBranchRequest={(event) => void canvas.actions.branchFromBlock(event)}
@@ -265,12 +276,13 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
     void canvas.actions.reorderSiblings(activeEdge.fromSurfaceId, activeEdge.fromBlockId, ordered);
   };
 
-  // Auto-scroll the active surface into view.
+  // Auto-scroll the active surface into view. Filter by attribute rather than
+  // interpolating the id into a selector (surface ids may contain CSS-special
+  // characters that would throw a SyntaxError).
   useEffect(() => {
     if (!layout.autoScroll) return;
-    const el = document.querySelector<HTMLElement>(
-      `.ham-canvas [data-surface-id="${canvas.activeSurfaceId}"]`,
-    );
+    const els = document.querySelectorAll<HTMLElement>(".ham-canvas [data-surface-id]");
+    const el = [...els].find((e) => e.getAttribute("data-surface-id") === canvas.activeSurfaceId);
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [canvas.activeSurfaceId, layout.autoScroll]);
 

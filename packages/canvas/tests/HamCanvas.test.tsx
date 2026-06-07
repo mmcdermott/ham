@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { useState } from "react";
 import { render, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { HamCanvas } from "../src/HamCanvas";
-import type { HamBranchEdge, HamCanvasHandlers, HamSurface } from "../src/types";
+import type { HamBranchEdge, HamCanvasHandlers, HamSurface, HamSurfaceId } from "../src/types";
 
 afterEach(() => cleanup());
 beforeAll(() => {
@@ -101,6 +102,73 @@ describe("HamCanvas", () => {
     expect(call.sourceSurfaceId).toBe("s_root");
     expect(call.sourceBlockId).toMatch(/^blk_/);
     expect(call.sourceSurfaceSnapshot.blocks[call.sourceBlockId]).toBeDefined();
+  });
+
+  it("re-activates the parent when an ancestor of the active surface is deleted", async () => {
+    // Stateful host: root -> A -> B. Deleting A (an ancestor of the active
+    // surface) must not leave B as an unreachable orphan.
+    const onActiveChange = vi.fn();
+    function Host() {
+      const [surfaces, setSurfaces] = useState<Record<HamSurfaceId, HamSurface>>({
+        s_root: surface("s_root", "# Root\n\n## A", "Root"),
+        s_a: surface("s_a", "# A\n\n## inner", "A"),
+        s_b: surface("s_b", "# B branch", "B"),
+      });
+      const [edges, setEdges] = useState<HamBranchEdge[]>([
+        { id: "e_a", fromSurfaceId: "s_root", fromBlockId: "blk_A", toSurfaceId: "s_a", order: 0 },
+        { id: "e_b", fromSurfaceId: "s_a", fromBlockId: "blk_inner", toSurfaceId: "s_b", order: 0 },
+      ]);
+      const handlers = makeHandlers({
+        deleteSurface: async ({ surfaceId, descendantSurfaceIds }) => {
+          const remove = new Set([surfaceId, ...descendantSurfaceIds]);
+          setSurfaces((s) =>
+            Object.fromEntries(Object.entries(s).filter(([id]) => !remove.has(id))),
+          );
+          setEdges((e) =>
+            e.filter((x) => !remove.has(x.fromSurfaceId) && !remove.has(x.toSurfaceId)),
+          );
+        },
+      });
+      return (
+        <HamCanvas
+          rootSurfaceId="s_root"
+          surfaces={surfaces}
+          branchEdges={edges}
+          handlers={handlers}
+          onActiveChange={onActiveChange}
+        />
+      );
+    }
+    const { container } = render(<Host />);
+
+    // Navigate to B (root -> open A -> open B) so B is the active surface.
+    await waitFor(() => {
+      const a = container.querySelector('[data-surface-id="s_a"] .ham-surface-open');
+      expect(a).not.toBeNull();
+    });
+    fireEvent.click(
+      container.querySelector<HTMLElement>('[data-surface-id="s_a"] .ham-surface-open')!,
+    );
+    await waitFor(() => {
+      const b = container.querySelector('[data-surface-id="s_b"] .ham-surface-open');
+      expect(b).not.toBeNull();
+    });
+    fireEvent.click(
+      container.querySelector<HTMLElement>('[data-surface-id="s_b"] .ham-surface-open')!,
+    );
+    await waitFor(() =>
+      expect(onActiveChange).toHaveBeenLastCalledWith({ surfaceId: "s_b", blockId: null }),
+    );
+
+    // Delete A (ancestor of active B).
+    const del = container.querySelector<HTMLElement>('[data-surface-id="s_a"] .ham-surface-delete');
+    expect(del).not.toBeNull();
+    fireEvent.click(del!);
+
+    // Active must fall back to A's parent (root), not stay on the orphaned B.
+    await waitFor(() =>
+      expect(onActiveChange).toHaveBeenLastCalledWith({ surfaceId: "s_root", blockId: null }),
+    );
   });
 
   it("activates a surface when its preview is opened", async () => {

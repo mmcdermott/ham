@@ -206,4 +206,10 @@ describe("reorder siblings (same-anchor only)", () => {
     const moved = reorderSiblingEdgesByIds(edges, ["e_a2", "e_a"]);
     expect(siblingEdges(moved, "s_root", "blk_A").map((e) => e.id)).toEqual(["e_a2", "e_a"]);
   });
+
+  it("requires a complete permutation: partial or duplicate id lists are no-ops", () => {
+    expect(reorderSiblingEdgesByIds(edges, ["e_a"])).toBe(edges); // partial (group has 2)
+    expect(reorderSiblingEdgesByIds(edges, ["e_a", "e_a"])).toBe(edges); // duplicate
+    expect(reorderSiblingEdgesByIds(edges, ["e_a2", "e_a"])).not.toBe(edges); // full permutation
+  });
 });

@@ -69,7 +69,13 @@ export function reorderSiblingEdgesByIds<EdgeMeta>(
   orderedEdgeIds: HamBranchEdgeId[],
 ): HamBranchEdge<EdgeMeta>[] {
   if (!areSameAnchorSiblings(branchEdges, orderedEdgeIds)) return branchEdges;
+  // Must be an exact permutation of the full sibling group — a partial or
+  // duplicated list would otherwise violate the dense-order invariant.
+  if (new Set(orderedEdgeIds).size !== orderedEdgeIds.length) return branchEdges;
   const byId = new Map(branchEdges.map((e) => [e.id, e]));
+  const first = byId.get(orderedEdgeIds[0]!)!;
+  const group = siblingEdges(branchEdges, first.fromSurfaceId, first.fromBlockId);
+  if (group.length !== orderedEdgeIds.length) return branchEdges;
   const reordered = orderedEdgeIds.map((id) => byId.get(id)!);
   return applyOrder(branchEdges, reordered);
 }
