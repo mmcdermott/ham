@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -16,7 +16,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { HamEditor, type HamBranchChildSummary, type HamEditorHandle } from "@ham/editor";
+import {
+  HamEditor,
+  type HamBranchChildSummary,
+  type HamEditorHandle,
+  type HamSurfaceSnapshot,
+} from "@ham/editor";
 
 import { resolveBehavior, resolveLayout } from "./defaults";
 import { useHamCanvas } from "./useHamCanvas";
@@ -49,10 +54,13 @@ interface ItemProps {
   canvas: ReturnType<typeof useHamCanvas>;
   props: HamCanvasProps;
   sortable: boolean;
+  depth: number;
 }
 
-function SurfaceItem({ item, canvas, props, sortable }: ItemProps) {
+function SurfaceItem({ item, canvas, props, sortable, depth }: ItemProps) {
   const surface = item.surface;
+  const hasChildren = props.branchEdges.some((e) => e.fromSurfaceId === surface.id);
+  const collapsed = canvas.collapsedSurfaceIds.has(surface.id);
   const edgeId = item.incomingEdge?.id ?? surface.id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: edgeId,
@@ -113,9 +121,22 @@ function SurfaceItem({ item, canvas, props, sortable }: ItemProps) {
       className={frameClass}
       data-surface-id={surface.id}
       data-path-state={item.pathState}
+      role="treeitem"
+      aria-level={depth + 1}
+      aria-label={surface.title ?? "Untitled surface"}
       aria-current={item.pathState === "active" ? "true" : undefined}
+      aria-expanded={hasChildren ? (collapsed ? "false" : "true") : undefined}
     >
       <header className="ham-surface-header">
+        <button
+          type="button"
+          className="ham-surface-collapse"
+          aria-label={collapsed ? "Expand surface" : "Collapse surface"}
+          aria-expanded={collapsed ? "false" : "true"}
+          onClick={() => canvas.actions.toggleCollapsed(surface.id)}
+        >
+          {collapsed ? "▸" : "▾"}
+        </button>
         {sortable && (
           <button
             type="button"
@@ -193,7 +214,14 @@ function SurfaceItem({ item, canvas, props, sortable }: ItemProps) {
             onActiveBlockChange={(blockId) => canvas.actions.activate(surface.id, blockId)}
             onOpenBranchChild={(e) => canvas.actions.activate(e.childSurfaceId, null)}
           />
-        ) : (
+        ) : item.displayMode === "outline" ? (
+          <OutlineBody
+            surfaceId={surface.id}
+            snapshot={canvas.snapshotsBySurfaceId[surface.id]}
+            fallback={surface.content}
+            onActivate={() => canvas.actions.activate(surface.id, null)}
+          />
+        ) : item.displayMode === "rail" ? null : (
           <button
             type="button"
             className="ham-surface-preview"
@@ -204,6 +232,43 @@ function SurfaceItem({ item, canvas, props, sortable }: ItemProps) {
         )}
       </div>
     </section>
+  );
+}
+
+/** Compact outline of a surface's top-level blocks (or a text preview fallback). */
+function OutlineBody({
+  surfaceId,
+  snapshot,
+  fallback,
+  onActivate,
+}: {
+  surfaceId: string;
+  snapshot: HamSurfaceSnapshot | undefined;
+  fallback: { kind: string; markdown?: string };
+  onActivate: () => void;
+}) {
+  if (!snapshot) {
+    return (
+      <button type="button" className="ham-surface-preview" onClick={onActivate}>
+        {previewText(fallback)}
+      </button>
+    );
+  }
+  const top = snapshot.blocks[snapshot.rootBlockId]?.childIds ?? [];
+  return (
+    <ul className="ham-surface-outline" aria-label={`Outline of ${surfaceId}`}>
+      {top.map((id) => {
+        const block = snapshot.blocks[id];
+        if (!block) return null;
+        return (
+          <li key={id} className={`ham-outline-item ham-outline-${block.type}`}>
+            <button type="button" className="ham-outline-link" onClick={onActivate}>
+              {block.textPreview || "(empty)"}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -240,6 +305,7 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   props: HamCanvasProps<SurfaceMeta, EdgeMeta>,
 ) {
   const canvas = useHamCanvas(props);
+  const rootRef = useRef<HTMLDivElement>(null);
   const layout = useMemo(() => resolveLayout(props.layout), [props.layout]);
   const behavior = useMemo(() => resolveBehavior(props.behavior), [props.behavior]);
 
@@ -280,22 +346,88 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   // interpolating the id into a selector (surface ids may contain CSS-special
   // characters that would throw a SyntaxError).
   useEffect(() => {
-    if (!layout.autoScroll) return;
-    const els = document.querySelectorAll<HTMLElement>(".ham-canvas [data-surface-id]");
+    if (!layout.autoScroll || !rootRef.current) return;
+    const els = rootRef.current.querySelectorAll<HTMLElement>("[data-surface-id]");
     const el = [...els].find((e) => e.getAttribute("data-surface-id") === canvas.activeSurfaceId);
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [canvas.activeSurfaceId, layout.autoScroll]);
 
   const reorderEnabled = behavior.enableSurfaceReorder && !!props.handlers.reorderBranchSiblings;
 
+  // Keyboard navigation across surfaces/columns (spec §9.1). Alt+Arrows move
+  // along the path and among same-column siblings.
+  const navigate = (dir: "left" | "right" | "up" | "down") => {
+    const cols = canvas.columns;
+    const active = canvas.activeSurfaceId;
+    let colIdx = -1;
+    let itemIdx = -1;
+    cols.forEach((c, ci) =>
+      c.items.forEach((it, ii) => {
+        if (it.surface.id === active) {
+          colIdx = ci;
+          itemIdx = ii;
+        }
+      }),
+    );
+    if (colIdx < 0) return;
+    if (dir === "left") {
+      const parent = canvas.activePath.surfaceIds.at(-2);
+      if (parent) canvas.actions.activate(parent, null);
+    } else if (dir === "right") {
+      const child = cols[colIdx + 1]?.items.find((it) => it.parentSurfaceId === active);
+      if (child) canvas.actions.activate(child.surface.id, null);
+    } else if (dir === "down") {
+      const next = cols[colIdx]?.items[itemIdx + 1];
+      if (next) canvas.actions.activate(next.surface.id, null);
+    } else if (dir === "up") {
+      const prev = cols[colIdx]?.items[itemIdx - 1];
+      if (prev) canvas.actions.activate(prev.surface.id, null);
+    }
+  };
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!behavior.enableKeyboardNavigation || !event.altKey) return;
+    // Don't steal Alt+Arrow (word navigation) from a focused editor / input.
+    const target = event.target as HTMLElement;
+    if (
+      target.isContentEditable ||
+      target.closest(".ham-editor, input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
+    const dir = (
+      {
+        ArrowLeft: "left",
+        ArrowRight: "right",
+        ArrowUp: "up",
+        ArrowDown: "down",
+      } as const
+    )[event.key];
+    if (dir) {
+      event.preventDefault();
+      navigate(dir);
+    }
+  };
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <div
+        ref={rootRef}
         className={["ham-canvas", props.className].filter(Boolean).join(" ")}
         style={{ gap: layout.columnGap, padding: layout.padding }}
+        tabIndex={0}
+        role="tree"
+        aria-label="Canvas of linked surfaces"
+        onKeyDown={onKeyDown}
       >
         {canvas.columns.map((column) => (
-          <div className="ham-column" key={column.depth} data-depth={column.depth}>
+          <div
+            className="ham-column"
+            key={column.depth}
+            data-depth={column.depth}
+            role="group"
+            aria-label={`Column ${column.depth + 1}`}
+          >
             {groupColumn(column).map((group) => {
               const sortable = reorderEnabled && group.items.length > 1;
               return (
@@ -311,6 +443,7 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
                       canvas={canvas}
                       props={props as HamCanvasProps}
                       sortable={sortable}
+                      depth={column.depth}
                     />
                   ))}
                 </SortableContext>
