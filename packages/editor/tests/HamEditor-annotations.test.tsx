@@ -83,4 +83,46 @@ describe("HamEditor + annotations", () => {
     // ...and the popover closes once the query no longer matches a trigger.
     await waitFor(() => expect(document.querySelector(".ham-suggest-popover")).toBeNull());
   });
+
+  // Shared mount for the type-ahead edge-case tests.
+  async function mountSearch(initial = "") {
+    let handle: HamEditorHandle | null = null;
+    const utils = render(
+      <HamEditor
+        surfaceId="s1"
+        rootBlockId="blk_root"
+        value={{ kind: "markdown", markdown: initial }}
+        annotations={createExampleAnnotationRegistry()}
+        annotationContext={{
+          references: { vaswani2017: { title: "Attention Is All You Need", year: 2017 } },
+          people: { alice: { name: "Alice Researcher" } },
+        }}
+        onReady={(h) => {
+          handle = h;
+        }}
+      />,
+    );
+    await waitFor(() => expect(handle).not.toBeNull());
+    return { ...utils, editor: handle!.getUnsafeTiptapEditor() as Editor };
+  }
+
+  it("does not open @-search inside an email-like token", async () => {
+    const { editor } = await mountSearch();
+    // "@vas" alone would match vaswani2017, but here `@` is preceded by a letter.
+    editor.chain().focus("end").insertContent("ab@vas").run();
+    await new Promise((r) => setTimeout(r, 60));
+    expect(document.querySelector(".ham-suggest-popover")).toBeNull();
+  });
+
+  it("Escape dismisses the @-search popover", async () => {
+    const { container, editor } = await mountSearch("Ref: ");
+    editor.chain().focus("end").insertContent("@vas").run();
+    await waitFor(() => expect(document.querySelector(".ham-suggest-popover")).not.toBeNull());
+
+    const pm = container.querySelector<HTMLElement>(".ham-editor .ProseMirror")!;
+    fireEvent.keyDown(pm, { key: "Escape" });
+    await waitFor(() => expect(document.querySelector(".ham-suggest-popover")).toBeNull());
+    // The text is untouched (dismiss ≠ delete).
+    expect(editor.getText()).toContain("@vas");
+  });
 });

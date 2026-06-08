@@ -14,6 +14,7 @@ import {
 } from "./annotations/plugin";
 import {
   AnnotationSuggest,
+  annotationSuggestKey,
   dismissAnnotationSuggest,
   type AnnotationSuggestContext,
   type AnnotationSuggestState,
@@ -99,6 +100,9 @@ function HamEditorInner<AnnotationData = unknown>(
     items: [],
   });
   const [suggestIndex, setSuggestIndex] = useState(0);
+  // Mirror of the highlighted index for the keyboard handler — read synchronously
+  // so rapid keystrokes (e.g. ArrowDown then Enter) never act on a stale index.
+  const suggestIndexRef = useRef(0);
 
   const {
     surfaceId,
@@ -303,12 +307,26 @@ function HamEditorInner<AnnotationData = unknown>(
     }
   }, [editor, props.annotations, props.annotationContext, surfaceId, rootBlockId]);
 
+  // Set the highlighted index in both the ref (for the keyboard handler) and
+  // React state (for the render) so they can't diverge.
+  const setSuggestHighlight = useStable((next: number | ((i: number) => number)) => {
+    setSuggestIndex((i) => {
+      const v = typeof next === "function" ? next(i) : next;
+      suggestIndexRef.current = v;
+      return v;
+    });
+  }, []);
+
   // Insert a chosen suggestion's literal text over the trigger + query range,
-  // then let the recognizers turn it into an annotation (e.g. an @key pill).
+  // then let the recognizers turn it into an annotation (e.g. an @key pill). The
+  // range is read from the live plugin state — never a captured (possibly stale)
+  // React value.
   const commitSuggestion = useStable(
     (item: HamAnnotationSuggestion) => {
-      if (!editor || !suggest.range) return;
-      const { from, to } = suggest.range;
+      if (!editor) return;
+      const range = annotationSuggestKey.getState(editor.state)?.suggest.range;
+      if (!range) return;
+      const { from, to } = range;
       editor
         .chain()
         .focus()
@@ -318,12 +336,42 @@ function HamEditorInner<AnnotationData = unknown>(
         })
         .run();
     },
-    [editor, suggest.range],
+    [editor],
   );
 
-  // Keep the type-ahead context current. The keydown handler (forwarded by the
-  // plugin while the popover is open) and the rendered highlight share one
-  // host-owned index, so they never disagree.
+  // A STABLE keyboard handler: it reads the live items/range from plugin state
+  // and the index from a ref, so it's immune to React-render lag under rapid
+  // keystrokes (the plugin forwards keys to it while the popover is open).
+  const onSuggestKeyDown = useStable(
+    (event: KeyboardEvent): boolean => {
+      if (!editor) return false;
+      const st = annotationSuggestKey.getState(editor.state)?.suggest;
+      if (!st?.active || st.items.length === 0) return false;
+      const n = st.items.length;
+      if (event.key === "ArrowDown") {
+        setSuggestHighlight((i) => (i + 1) % n);
+        return true;
+      }
+      if (event.key === "ArrowUp") {
+        setSuggestHighlight((i) => (i - 1 + n) % n);
+        return true;
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        const item = st.items[Math.min(suggestIndexRef.current, n - 1)] ?? st.items[0];
+        if (item) commitSuggestion(item);
+        return true;
+      }
+      if (event.key === "Escape") {
+        dismissAnnotationSuggest(editor);
+        return true;
+      }
+      return false;
+    },
+    [editor, commitSuggestion, setSuggestHighlight],
+  );
+
+  // Keep the type-ahead context current. onState/onKeyDown are stable, so the
+  // context is set once per editor — the plugin always sees a fresh handler.
   useEffect(() => {
     suggestCtxRef.current = props.annotations
       ? {
@@ -331,33 +379,12 @@ function HamEditorInner<AnnotationData = unknown>(
           context: props.annotationContext ?? {},
           onState: (state) => {
             setSuggest(state);
-            setSuggestIndex(0);
+            setSuggestHighlight(0);
           },
-          onKeyDown: (event) => {
-            if (!suggest.active || suggest.items.length === 0) return false;
-            const n = suggest.items.length;
-            if (event.key === "ArrowDown") {
-              setSuggestIndex((i) => (i + 1) % n);
-              return true;
-            }
-            if (event.key === "ArrowUp") {
-              setSuggestIndex((i) => (i - 1 + n) % n);
-              return true;
-            }
-            if (event.key === "Enter" || event.key === "Tab") {
-              const item = suggest.items[suggestIndex] ?? suggest.items[0];
-              if (item) commitSuggestion(item);
-              return true;
-            }
-            if (event.key === "Escape") {
-              if (editor) dismissAnnotationSuggest(editor);
-              return true;
-            }
-            return false;
-          },
+          onKeyDown: onSuggestKeyDown,
         }
       : null;
-  }, [editor, props.annotations, props.annotationContext, suggest, suggestIndex, commitSuggestion]);
+  }, [props.annotations, props.annotationContext, onSuggestKeyDown, setSuggestHighlight]);
 
   // Build and publish the imperative handle once the editor exists.
   useEffect(() => {

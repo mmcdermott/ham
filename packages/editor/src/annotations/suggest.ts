@@ -79,11 +79,6 @@ export function collectSuggestions<Ctx>(
   return out.slice(0, maxItems);
 }
 
-const sameRange = (
-  a: { from: number; to: number } | null,
-  b: { from: number; to: number } | null,
-): boolean => !!a && !!b && a.from === b.from && a.to === b.to;
-
 /** Resolve the active type-ahead at the cursor against the registry's triggers. */
 function compute(
   state: EditorState,
@@ -109,6 +104,12 @@ function compute(
       $position,
     });
     if (!match) continue;
+    // Require a non-word boundary before the trigger, mirroring the citation
+    // recognizer's `(?<![A-Za-z0-9])@` — so `email@host.com` isn't a trigger but
+    // `(@key`, a leading `@`, or `@` after a space all are.
+    const $at = state.doc.resolve(match.range.from);
+    const before = $at.parent.textBetween(Math.max(0, $at.parentOffset - 1), $at.parentOffset);
+    if (before && /[A-Za-z0-9]/.test(before)) continue;
     const items = collectSuggestions(ctx.registry, trigger, match.query, ctx.context, ctx.maxItems);
     if (items.length === 0) continue; // nothing to show — let another trigger try
     return { active: true, trigger, query: match.query, range: match.range, items };
@@ -139,16 +140,19 @@ export const AnnotationSuggest = Extension.create<AnnotationSuggestOptions>({
         state: {
           init: () => ({ suggest: EMPTY, dismissed: null }),
           apply(tr, value, _oldState, newState): PluginState {
-            // Escape dismisses the current match until its range changes.
+            // Escape dismisses the current token (keyed by its trigger position).
             if (tr.getMeta(annotationSuggestKey)?.dismiss) {
               return { suggest: EMPTY, dismissed: value.suggest.range };
             }
             const next = compute(newState, getContext);
-            // A still-dismissed range stays closed; a changed range re-opens.
-            if (next.active && sameRange(next.range, value.dismissed)) {
+            // Stay suppressed only while still typing within the SAME token (same
+            // trigger position). Moving the cursor away, or a new token, clears
+            // the dismissal — so the type-ahead can never get permanently stuck
+            // (e.g. after undo/redo returns to the same offset).
+            if (next.active && value.dismissed && next.range?.from === value.dismissed.from) {
               return { suggest: EMPTY, dismissed: value.dismissed };
             }
-            return { suggest: next, dismissed: next.active ? null : value.dismissed };
+            return { suggest: next, dismissed: null };
           },
         },
         props: {
