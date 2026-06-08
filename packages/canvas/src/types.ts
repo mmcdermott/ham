@@ -113,6 +113,22 @@ export interface HamCanvasLayoutConfig {
    * wide screen; the others compact inactive surfaces.
    */
   inactiveColumnMode: "card" | "outline" | "rail" | "hidden" | "expanded";
+  /**
+   * Visual treatment of the surfaces. `"card"` (default) renders each surface as
+   * a separate bordered, shadowed card. `"flat"` drops the per-surface chrome and
+   * tightens gaps so a column reads as one holistic editor with hairline
+   * dividers. `"plain"` removes all chrome (no borders, shadows, or backgrounds).
+   */
+  appearance: "card" | "flat" | "plain";
+  /**
+   * Whether to draw connector lines from a source block to its child surfaces
+   * across columns. `"off"` draws none; `"active"` (default) only the active
+   * lineage; `"all"` every edge; `"hover"` only edges incident to the hovered
+   * surface (plus the active lineage).
+   */
+  showConnectors: "off" | "all" | "active" | "hover";
+  /** Curvature of connector paths, 0 (straight) … 1 (deeply curved). Default 0.5. */
+  connectorCurvature: number;
   autoScroll: boolean;
   virtualizeColumns: boolean;
   virtualizeSurfaces: boolean;
