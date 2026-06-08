@@ -234,12 +234,42 @@ export interface HamColumnHeaderProps {
   count: number;
 }
 
+/** How prominently a connector is drawn, derived from the active path. */
+export type HamConnectorState = "active" | "ancestor" | "muted";
+
+export interface HamConnectorRenderProps<EdgeMeta = unknown> {
+  edge: HamBranchEdge<EdgeMeta>;
+  /** Cubic-bezier path string in canvas-content coordinates. */
+  path: string;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  state: HamConnectorState;
+}
+
+/** Props passed to a custom add-sibling affordance (spec §6.5, §6.11). */
+export interface HamAddSiblingButtonProps {
+  /** Surface that owns the anchor block the new branch attaches to. */
+  fromSurfaceId: HamSurfaceId;
+  /** Anchor block the new sibling branches from. */
+  fromBlockId: HamBlockId;
+  /** Existing sibling edge this insertion lands after (undefined = prepend). */
+  afterEdgeId?: HamBranchEdgeId;
+  /** Resolved order the new sibling will occupy among its siblings. */
+  insertOrder: number;
+  /** Create the sibling at this position. */
+  onAddSibling: () => void;
+}
+
 export interface HamCanvasSlots<SurfaceMeta = unknown, EdgeMeta = unknown> {
   SurfaceFrame?: ComponentType<HamSurfaceFrameProps<SurfaceMeta, EdgeMeta>>;
   SurfaceHeader?: ComponentType<HamSurfaceHeaderProps<SurfaceMeta, EdgeMeta>>;
   SurfacePreview?: ComponentType<HamSurfacePreviewProps<SurfaceMeta, EdgeMeta>>;
   ColumnHeader?: ComponentType<HamColumnHeaderProps>;
   EmptyColumn?: ComponentType<{ depth: number }>;
+  /** Override per-edge connector rendering (must return an SVG element). */
+  Connector?: ComponentType<HamConnectorRenderProps<EdgeMeta>>;
+  /** Override the positioned add-sibling affordance in a column's sibling rail. */
+  AddSiblingButton?: ComponentType<HamAddSiblingButtonProps>;
 }
 
 // ---------------------------------------------------------------------------

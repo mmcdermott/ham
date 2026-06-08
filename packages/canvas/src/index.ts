@@ -23,5 +23,10 @@ export {
 // Config defaults
 export { defaultLayout, defaultBehavior, resolveLayout, resolveBehavior } from "./defaults";
 
+// Connectors (cross-column edge overlay)
+export { HamConnectorsOverlay, DefaultConnector } from "./connectors/HamConnectorsOverlay";
+export { visibleEdges, connectorState, geometryFor } from "./connectors/connectors";
+export type { EdgeGeometry, HamHoverTarget } from "./connectors/connectors";
+
 // Public types
 export type * from "./types";

@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -25,6 +33,8 @@ import {
 
 import { resolveBehavior, resolveLayout } from "./defaults";
 import { useHamCanvas } from "./useHamCanvas";
+import { HamConnectorsOverlay } from "./connectors/HamConnectorsOverlay";
+import type { HamHoverTarget } from "./connectors/connectors";
 import type { HamCanvasColumn, HamCanvasItem, HamCanvasProps, HamSurfaceId } from "./types";
 
 function childrenForSurface(
@@ -322,6 +332,33 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   const layout = useMemo(() => resolveLayout(props.layout), [props.layout]);
   const behavior = useMemo(() => resolveBehavior(props.behavior), [props.behavior]);
 
+  // Hover target for connector "hover" mode, tracked via delegation on the root
+  // so it costs nothing in the other modes.
+  const [hovered, setHovered] = useState<HamHoverTarget | null>(null);
+  const onPointerOver = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (layout.showConnectors !== "hover") return;
+    const target = event.target as HTMLElement;
+    const surfaceEl = target.closest<HTMLElement>("[data-surface-id]");
+    if (!surfaceEl) return;
+    const surfaceId = surfaceEl.getAttribute("data-surface-id")!;
+    const blockId = target.closest<HTMLElement>("[data-block-id]")?.getAttribute("data-block-id") ?? null;
+    setHovered((prev) =>
+      prev && prev.surfaceId === surfaceId && prev.blockId === blockId ? prev : { surfaceId, blockId },
+    );
+  };
+
+  // A compact signature of the projected layout — connectors re-measure whenever
+  // columns reshape, the active path moves, or edges change.
+  const reshapeKey = useMemo(
+    () =>
+      canvas.columns
+        .map((c) => c.items.map((i) => `${i.surface.id}:${i.displayMode}`).join(","))
+        .join("|") +
+      `#${canvas.activeSurfaceId}:${canvas.activeBlockId ?? ""}` +
+      `#${props.branchEdges.map((e) => `${e.id}:${e.order}`).join(",")}`,
+    [canvas.columns, canvas.activeSurfaceId, canvas.activeBlockId, props.branchEdges],
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -426,12 +463,22 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <div
         ref={rootRef}
-        className={["ham-canvas", props.className].filter(Boolean).join(" ")}
-        style={{ gap: layout.columnGap, padding: layout.padding }}
+        className={["ham-canvas", `ham-appearance-${layout.appearance}`, props.className]
+          .filter(Boolean)
+          .join(" ")}
+        style={
+          {
+            "--ham-column-gap": `${layout.columnGap}px`,
+            "--ham-surface-gap": `${layout.surfaceGap}px`,
+            padding: layout.padding,
+          } as CSSProperties
+        }
         tabIndex={0}
         role="tree"
         aria-label="Canvas of linked surfaces"
         onKeyDown={onKeyDown}
+        onMouseOver={onPointerOver}
+        onMouseLeave={() => hovered && setHovered(null)}
       >
         {canvas.columns.map((column) => (
           <div
@@ -464,6 +511,15 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
             })}
           </div>
         ))}
+        <HamConnectorsOverlay
+          rootRef={rootRef}
+          edges={props.branchEdges}
+          activePath={canvas.activePath}
+          layout={layout}
+          hovered={hovered}
+          reshapeKey={reshapeKey}
+          slots={props.slots}
+        />
       </div>
     </DndContext>
   );

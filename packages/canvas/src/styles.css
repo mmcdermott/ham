@@ -13,8 +13,10 @@
 }
 
 .ham-canvas {
+  position: relative; /* containing block for the connectors SVG overlay */
   display: flex;
   align-items: flex-start;
+  gap: var(--ham-column-gap);
   overflow-x: auto;
   background: var(--ham-canvas-bg);
   min-height: 320px;
@@ -156,8 +158,67 @@
   min-width: 200px;
 }
 
+/* Cross-column connectors ---------------------------------------------------- */
+.ham-connectors {
+  /* Sits above the cards; never intercepts pointer input (set inline too). */
+  z-index: 1;
+}
 .ham-branch-connector {
   stroke: var(--ham-surface-border);
   stroke-width: 1.5;
   fill: none;
+}
+.ham-branch-connector-muted {
+  stroke: var(--ham-surface-border);
+  opacity: 0.5;
+}
+.ham-branch-connector-ancestor {
+  stroke: var(--ham-accent);
+  opacity: 0.45;
+}
+.ham-branch-connector-active {
+  stroke: var(--ham-accent);
+  stroke-width: 2;
+  opacity: 0.9;
+}
+
+/* Appearance: flat — a column reads as one holistic editor ------------------- */
+.ham-appearance-flat .ham-column {
+  gap: 0;
+  background: var(--ham-surface-bg);
+  border: 1px solid var(--ham-surface-border);
+  border-radius: var(--ham-radius);
+  overflow: hidden;
+}
+.ham-appearance-flat .ham-surface {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Hairline divider between stacked surfaces in a flat column. */
+.ham-appearance-flat .ham-surface + .ham-surface {
+  border-top: 1px solid var(--ham-surface-border);
+}
+.ham-appearance-flat .ham-surface-active {
+  box-shadow: inset 3px 0 0 0 var(--ham-accent);
+}
+.ham-appearance-flat .ham-surface-header {
+  background: transparent;
+  font-weight: 500;
+}
+
+/* Appearance: plain — no chrome at all -------------------------------------- */
+.ham-appearance-plain .ham-surface {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.ham-appearance-plain .ham-surface-header {
+  border-bottom: none;
+  font-weight: 500;
+  opacity: 0.7;
+}
+.ham-appearance-plain .ham-surface-active {
+  box-shadow: inset 3px 0 0 0 var(--ham-accent);
 }
