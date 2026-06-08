@@ -8,6 +8,21 @@ import { annotationContext, overviewCanvas } from "../lib/examples";
 
 type Registry = HamCanvasProps["annotationRegistry"];
 
+const SOURCE = `import { HamCanvas } from "@ham/canvas";
+import "@ham/canvas/styles.css";
+
+// The canvas owns layout; you own the data. \`surfaces\` + \`branchEdges\` are the
+// tree, and \`handlers\` is how the canvas asks you to create/save surfaces when a
+// block is branched. useDemoCanvas() here is a tiny in-memory host for the demo.
+<HamCanvas
+  rootSurfaceId="s_root"
+  surfaces={surfaces}
+  branchEdges={branchEdges}
+  handlers={handlers}
+  behavior={{ deleteSurfacePolicy: "delete-subtree" }}
+  layout={{ inactiveColumnMode: "card" }}
+/>;`;
+
 export function CanvasDemo() {
   const canvas = useDemoCanvas(overviewCanvas);
   const registry = useMemo(() => createExampleAnnotationRegistry() as Registry, []);
@@ -17,6 +32,7 @@ export function CanvasDemo() {
     <DemoFrame
       title="@ham/canvas — branch a block into a new surface"
       onReset={canvas.reset}
+      source={SOURCE}
       controls={
         <label className="demo-toggle">
           <input

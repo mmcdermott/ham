@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Overview } from "./pages/Overview";
 import { GettingStarted } from "./pages/GettingStarted";
 import { MarkdownPage } from "./pages/MarkdownPage";
+import { RichContentPage } from "./pages/RichContentPage";
 import { AnnotationsPage } from "./pages/AnnotationsPage";
 import { ApiReference } from "./pages/ApiReference";
 import { EditorDemo } from "./demos/EditorDemo";
@@ -32,6 +33,12 @@ const SECTIONS: Section[] = [
     label: "Markdown & rendering",
     group: "Concepts",
     render: () => <MarkdownPage />,
+  },
+  {
+    id: "rich-content",
+    label: "Rich content",
+    group: "Concepts",
+    render: () => <RichContentPage />,
   },
   {
     id: "annotations",

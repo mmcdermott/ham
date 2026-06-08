@@ -6,6 +6,22 @@ import { annotatedMarkdown, annotationContext } from "../lib/examples";
 
 type Registry = HamEditorProps["annotations"];
 
+const SOURCE = `import { HamEditor, createExampleAnnotationRegistry } from "@ham/editor";
+import "@ham/editor/styles.css";
+
+// One surface = one annotated markdown document. The annotation registry
+// recognizes @citations, @mentions, URLs, and tasks; onBranchRequest fires
+// when a block's "+" gutter button is clicked.
+<HamEditor
+  surfaceId="demo-editor"
+  rootBlockId="blk_root"
+  title="Related work"
+  value={{ kind: "markdown", markdown: annotatedMarkdown }}
+  annotations={createExampleAnnotationRegistry()}
+  annotationContext={annotationContext}
+  onBranchRequest={(e) => console.log("branch", e.blockId, e.textPreview)}
+/>;`;
+
 export function EditorDemo() {
   const registry = useMemo(() => createExampleAnnotationRegistry() as Registry, []);
   const [log, setLog] = useState<string[]>([]);
@@ -15,6 +31,7 @@ export function EditorDemo() {
     <DemoFrame
       title="@ham/editor — one annotated surface"
       onReset={() => setKey((k) => k + 1)}
+      source={SOURCE}
       height="auto"
     >
       <div className="demo-editor-wrap">
