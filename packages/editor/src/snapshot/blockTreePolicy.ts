@@ -153,7 +153,9 @@ function branchableByRules(
   // n === 1 and suppressed. With "hoist-up" the topmost container in a
   // single-child chain stays branchable ("carry the whole section"); with
   // "delegate-down" only the chain's tail (the leaf) does.
-  return (r.passThrough ?? "hoist-up") === "hoist-up" ? !hasSingleChildParent(block, snapshot) : false;
+  return (r.passThrough ?? "hoist-up") === "hoist-up"
+    ? !hasSingleChildParent(block, snapshot)
+    : false;
 }
 
 /** Whether the block's parent is itself a non-root single-child container. */

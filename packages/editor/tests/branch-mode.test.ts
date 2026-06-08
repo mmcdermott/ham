@@ -6,7 +6,14 @@ import type { HamBranchabilityRules, HamSurfaceSnapshot } from "../src/types";
 const OPTS = { surfaceId: "s1", rootBlockId: "root", rootTitle: "Root" };
 
 function meta(p: Partial<BlockNodeMeta> & { id: string }): BlockNodeMeta {
-  return { type: "paragraph", headingLevel: null, text: p.id, isEmpty: false, literalParentId: null, ...p };
+  return {
+    type: "paragraph",
+    headingLevel: null,
+    text: p.id,
+    isEmpty: false,
+    literalParentId: null,
+    ...p,
+  };
 }
 
 const block = (snap: HamSurfaceSnapshot, id: string) => snap.blocks[id]!;
@@ -74,7 +81,11 @@ describe("resolveBranchMode — smart default", () => {
   });
 
   it("exposes SMART_RULES as the resolved default", () => {
-    expect(SMART_RULES).toMatchObject({ kind: "rules", passThrough: "hoist-up", alwaysHeadings: true });
+    expect(SMART_RULES).toMatchObject({
+      kind: "rules",
+      passThrough: "hoist-up",
+      alwaysHeadings: true,
+    });
     // Passing SMART_RULES explicitly matches the "smart" string.
     expect(resolveBranchMode(block(forky, "liA1"), forky, SMART_RULES)).toBe(
       resolveBranchMode(block(forky, "liA1"), forky, "smart"),

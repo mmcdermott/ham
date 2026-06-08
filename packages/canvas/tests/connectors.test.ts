@@ -36,7 +36,9 @@ describe("visibleEdges", () => {
 
   it("hover draws only edges from the hovered surface/block", () => {
     expect(visibleEdges("hover", edges, activePath, null)).toEqual([]);
-    const bySurface = visibleEdges("hover", edges, activePath, { surfaceId: "s_root" }).map((e) => e.id);
+    const bySurface = visibleEdges("hover", edges, activePath, { surfaceId: "s_root" }).map(
+      (e) => e.id,
+    );
     expect(bySurface.sort()).toEqual(["e_a", "e_a2", "e_b"]);
     const byBlock = visibleEdges("hover", edges, activePath, {
       surfaceId: "s_root",

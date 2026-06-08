@@ -57,7 +57,10 @@ export function visibleEdges<E>(
 }
 
 /** Styling state for an edge: on the active lineage, off an ancestor, or muted. */
-export function connectorState<E>(edge: HamBranchEdge<E>, activePath: HamActivePath): HamConnectorState {
+export function connectorState<E>(
+  edge: HamBranchEdge<E>,
+  activePath: HamActivePath,
+): HamConnectorState {
   if (activePath.edgeIds.includes(edge.id)) return "active";
   if (activePath.surfaceIds.includes(edge.fromSurfaceId)) return "ancestor";
   return "muted";

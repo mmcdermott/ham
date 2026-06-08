@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { useState } from "react";
 import { render, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { HamCanvas } from "../src/HamCanvas";
-import type { HamBranchEdge, HamCanvasHandlers, HamSurface, HamSurfaceId } from "../src/types";
+import type {
+  HamBranchEdge,
+  HamCanvasHandlers,
+  HamCreateSiblingSurfaceEvent,
+  HamSurface,
+  HamSurfaceId,
+} from "../src/types";
 
 afterEach(() => cleanup());
 beforeAll(() => {
@@ -283,6 +289,88 @@ describe("HamCanvas", () => {
     const body = container.querySelector<HTMLElement>('[data-surface-id="s_a"] .ham-surface-body')!;
     fireEvent.mouseDown(body);
     expect(onActiveChange).toHaveBeenLastCalledWith({ surfaceId: "s_a", blockId: null });
+  });
+
+  it("applies the appearance class on the canvas root", async () => {
+    const { container } = render(
+      <HamCanvas
+        rootSurfaceId="s_root"
+        surfaces={{ s_root: surface("s_root", "# Root", "Root") }}
+        branchEdges={[]}
+        handlers={makeHandlers()}
+        layout={{ appearance: "flat" }}
+      />,
+    );
+    await waitFor(() => expect(container.querySelector(".ham-canvas")).not.toBeNull());
+    expect(container.querySelector(".ham-canvas.ham-appearance-flat")).not.toBeNull();
+  });
+
+  it("renders a positioned add-sibling rail and inserts at the clicked gap", async () => {
+    const createSiblingSurface = vi.fn(async (_event: HamCreateSiblingSurfaceEvent) => ({
+      surface: surface("s_new", "# New", "New"),
+      edge: {
+        id: "e_new",
+        fromSurfaceId: "s_root",
+        fromBlockId: "blk_A",
+        toSurfaceId: "s_new",
+        order: 1,
+      } as HamBranchEdge,
+      activate: true as const,
+    }));
+    const surfaces = {
+      s_root: surface("s_root", "# Root\n\n## A", "Root"),
+      s_a1: surface("s_a1", "# A1", "A1"),
+      s_a2: surface("s_a2", "# A2", "A2"),
+    };
+    // Two children of the SAME block → a sibling group with insert gaps.
+    const edges: HamBranchEdge[] = [
+      { id: "e_a1", fromSurfaceId: "s_root", fromBlockId: "blk_A", toSurfaceId: "s_a1", order: 0 },
+      { id: "e_a2", fromSurfaceId: "s_root", fromBlockId: "blk_A", toSurfaceId: "s_a2", order: 1 },
+    ];
+    const { container } = render(
+      <HamCanvas
+        rootSurfaceId="s_root"
+        surfaces={surfaces}
+        branchEdges={edges}
+        activeSurfaceId="s_root"
+        handlers={makeHandlers({ createSiblingSurface })}
+      />,
+    );
+    let rails: HTMLElement[] = [];
+    await waitFor(() => {
+      rails = [
+        ...container
+          .querySelectorAll<HTMLElement>(".ham-column")[1]!
+          .querySelectorAll<HTMLElement>(".ham-add-sibling"),
+      ];
+      expect(rails).toHaveLength(3); // top, between, append
+    });
+    // Click the "between a1 and a2" inserter (index 1) → insertOrder 1, a2 shifts to 2.
+    fireEvent.click(rails[1]!);
+    await waitFor(() => expect(createSiblingSurface).toHaveBeenCalled());
+    const event = createSiblingSurface.mock.calls[0]![0];
+    expect(event.fromBlockId).toBe("blk_A");
+    expect(event.order).toBe(1);
+    expect(event.insertAfterEdgeId).toBe("e_a1");
+    expect(event.shiftedSiblingOrders).toEqual({ e_a2: 2 });
+  });
+
+  it("renders custom SurfaceFrame and ColumnHeader slots", async () => {
+    const { container } = render(
+      <HamCanvas
+        rootSurfaceId="s_root"
+        surfaces={{ s_root: surface("s_root", "# Root", "Root") }}
+        branchEdges={[]}
+        handlers={makeHandlers()}
+        slots={{
+          SurfaceFrame: ({ children }) => <div className="custom-frame">{children}</div>,
+          ColumnHeader: ({ count }) => <div className="custom-col-header">cols:{count}</div>,
+        }}
+      />,
+    );
+    await waitFor(() => expect(container.querySelector(".ham-editor")).not.toBeNull());
+    expect(container.querySelector(".custom-frame")).not.toBeNull();
+    expect(container.querySelector(".custom-col-header")?.textContent).toBe("cols:1");
   });
 
   it("activates a surface when its preview is opened", async () => {

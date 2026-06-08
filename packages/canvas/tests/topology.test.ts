@@ -270,9 +270,7 @@ describe("computeSiblingInsert (positioned add-sibling)", () => {
       toSurfaceId: "s_new",
       order: 2,
     };
-    const next = group
-      .map((e) => (e.id === "c3" ? { ...e, order: 3 } : e))
-      .concat(inserted);
+    const next = group.map((e) => (e.id === "c3" ? { ...e, order: 3 } : e)).concat(inserted);
     const sib = siblingEdges(next, "s_p", "blk_B").map((e) => e.id);
     expect(sib).toEqual(["c1", "c2", "c_new", "c3"]); // new surface sits between 2 and 3
   });
