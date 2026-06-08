@@ -355,6 +355,81 @@ describe("HamCanvas", () => {
     expect(event.shiftedSiblingOrders).toEqual({ e_a2: 2 });
   });
 
+  it("routes the gutter add-sibling affordance to createSiblingSurface", async () => {
+    // After a block has one branch child, its gutter "+" becomes an add-sibling
+    // "⊕" — clicking it must hit createSiblingSurface, not createSurfaceFromBlock.
+    const createSiblingSurface = vi.fn(async (event: HamCreateSiblingSurfaceEvent) => ({
+      surface: surface("s_sib", "# Sibling", "Sibling"),
+      edge: {
+        id: "e_sib",
+        fromSurfaceId: event.fromSurfaceId,
+        fromBlockId: event.fromBlockId,
+        toSurfaceId: "s_sib",
+        order: event.order ?? 1,
+      } as HamBranchEdge,
+      activate: false as const,
+    }));
+    let n = 0;
+    function Host() {
+      const [surfaces, setSurfaces] = useState<Record<HamSurfaceId, HamSurface>>({
+        s_root: surface("s_root", "# Root\n\nBranch me.", "Root"),
+      });
+      const [edges, setEdges] = useState<HamBranchEdge[]>([]);
+      const handlers = makeHandlers({
+        // Branch the first time → first child; keep root active so its gutter stays mounted.
+        createSurfaceFromBlock: async (event) => {
+          const id = `s_c${n++}`;
+          const newSurface = surface(id, "# Child", "Child");
+          const edge: HamBranchEdge = {
+            id: `e_${id}`,
+            fromSurfaceId: event.sourceSurfaceId,
+            fromBlockId: event.sourceBlockId,
+            toSurfaceId: id,
+            order: 0,
+          };
+          setSurfaces((s) => ({ ...s, [id]: newSurface }));
+          setEdges((e) => [...e, edge]);
+          return { surface: newSurface, edge, activate: false as const };
+        },
+        createSiblingSurface,
+      });
+      return (
+        <HamCanvas
+          rootSurfaceId="s_root"
+          surfaces={surfaces}
+          branchEdges={edges}
+          activeSurfaceId="s_root"
+          handlers={handlers}
+        />
+      );
+    }
+    const { container } = render(<Host />);
+
+    // 1) Branch a block (mode "branch") → it gains a child.
+    let branchBtn: HTMLElement | null = null;
+    await waitFor(() => {
+      branchBtn = container.querySelector<HTMLElement>(
+        '.ham-branch-button[data-ham-branch-mode="branch"]',
+      );
+      expect(branchBtn).not.toBeNull();
+    });
+    fireEvent.click(branchBtn!);
+
+    // 2) That same block now presents an add-sibling affordance.
+    let sibBtn: HTMLElement | null = null;
+    await waitFor(() => {
+      sibBtn = container.querySelector<HTMLElement>(
+        '.ham-branch-button[data-ham-branch-mode="add-sibling"]',
+      );
+      expect(sibBtn).not.toBeNull();
+    });
+
+    // 3) Clicking it routes to createSiblingSurface (not another createSurfaceFromBlock).
+    fireEvent.click(sibBtn!);
+    await waitFor(() => expect(createSiblingSurface).toHaveBeenCalled());
+    expect(createSiblingSurface.mock.calls[0]![0].fromSurfaceId).toBe("s_root");
+  });
+
   it("renders custom SurfaceFrame and ColumnHeader slots", async () => {
     const { container } = render(
       <HamCanvas

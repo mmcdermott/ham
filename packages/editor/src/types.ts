@@ -114,6 +114,12 @@ export interface HamBranchRequestEvent {
   blockSnapshot: HamBlockSnapshot;
   surfaceSnapshot: HamSurfaceSnapshot;
   textPreview: string;
+  /**
+   * How the affordance was presented: `"branch"` (the block had no children) or
+   * `"add-sibling"` (it already had a branch child). Lets the host route the two
+   * to different handlers (create first child vs add a sibling).
+   */
+  mode: HamBranchMode;
   /** Persist the source surface (so the source block id exists) before branching. */
   save: () => Promise<HamEditorSavePayload>;
   nativeEvent?: Event;

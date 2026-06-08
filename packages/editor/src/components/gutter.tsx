@@ -3,6 +3,7 @@ import type {
   HamBlockSlotProps,
   HamBranchChildChipProps,
   HamBranchChildSummary,
+  HamBranchMode,
   HamBlockId,
   HamEditorSlots,
   HamSurfaceId,
@@ -61,7 +62,7 @@ export interface BlockGutterAffordancesProps {
   surfaceId: HamSurfaceId;
   slots?: HamEditorSlots;
   branchChildren: HamBranchChildSummary[];
-  onBranch: (blockId: HamBlockId) => void;
+  onBranch: (blockId: HamBlockId, mode: HamBranchMode) => void;
   onOpenChild: (child: HamBranchChildSummary, blockId: HamBlockId) => void;
 }
 
@@ -109,7 +110,7 @@ export function BlockGutterAffordances({
           blockId={entry.blockId}
           blockType={entry.blockType}
           mode={entry.mode}
-          onBranch={() => onBranch(entry.blockId)}
+          onBranch={() => onBranch(entry.blockId, entry.mode)}
         />
       )}
     </div>

@@ -118,25 +118,6 @@ export function useHamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
     }
   }, []);
 
-  const branchFromBlock = useCallback(
-    async (event: HamBranchRequestEvent) => {
-      await withPending(event.surfaceId, async () => {
-        const result = await props.handlers.createSurfaceFromBlock({
-          sourceSurfaceId: event.surfaceId,
-          sourceBlockId: event.blockId,
-          sourceBlockSnapshot: event.blockSnapshot,
-          sourceSurfaceSnapshot: event.surfaceSnapshot,
-          suggestedTitle: event.textPreview,
-          saveSourceSurface: event.save,
-        });
-        if (result?.activate !== false && result?.surface) {
-          activate(result.surface.id, null);
-        }
-      });
-    },
-    [props.handlers, withPending, activate],
-  );
-
   const addSibling = useCallback(
     async (
       fromSurfaceId: HamSurfaceId,
@@ -167,6 +148,32 @@ export function useHamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
       });
     },
     [props.handlers, withPending, activate],
+  );
+
+  const branchFromBlock = useCallback(
+    async (event: HamBranchRequestEvent) => {
+      // A block that already has a branch child presents an "add sibling"
+      // affordance — route it to the sibling path (append) when the host
+      // supports it, so the two affordances hit the handlers the design intends.
+      if (event.mode === "add-sibling" && props.handlers.createSiblingSurface) {
+        await addSibling(event.surfaceId, event.blockId);
+        return;
+      }
+      await withPending(event.surfaceId, async () => {
+        const result = await props.handlers.createSurfaceFromBlock({
+          sourceSurfaceId: event.surfaceId,
+          sourceBlockId: event.blockId,
+          sourceBlockSnapshot: event.blockSnapshot,
+          sourceSurfaceSnapshot: event.surfaceSnapshot,
+          suggestedTitle: event.textPreview,
+          saveSourceSurface: event.save,
+        });
+        if (result?.activate !== false && result?.surface) {
+          activate(result.surface.id, null);
+        }
+      });
+    },
+    [props.handlers, withPending, activate, addSibling],
   );
 
   const reorderSiblings = useCallback(

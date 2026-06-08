@@ -407,6 +407,16 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
         : { surfaceId, blockId },
     );
   };
+  // Drop a stale hover target if its surface leaves the projection (collapsed,
+  // hidden, or deleted) while the pointer is still inside the canvas — otherwise
+  // `hover` connectors would keep referencing a gone surface.
+  useEffect(() => {
+    if (!hovered) return;
+    const present = canvas.columns.some((c) =>
+      c.items.some((i) => i.surface.id === hovered.surfaceId),
+    );
+    if (!present) setHovered(null);
+  }, [canvas.columns, hovered]);
 
   // A compact signature of the projected layout — connectors re-measure whenever
   // columns reshape, the active path moves, or edges change.

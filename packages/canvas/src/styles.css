@@ -242,7 +242,17 @@
   font-weight: 500;
 }
 
-/* Appearance: plain — no chrome at all -------------------------------------- */
+/* Appearance: plain — no HAM chrome at all (bring your own CSS) ------------- */
+/* Collapse the canvas/column gaps to a hairline so surfaces read as one
+   continuous, unstyled stack. (The gap variables are set inline on the root, so
+   we override the resolved `gap` property directly here rather than the var.) */
+.ham-appearance-plain {
+  gap: 12px;
+  background: transparent;
+}
+.ham-appearance-plain .ham-column {
+  gap: 0;
+}
 .ham-appearance-plain .ham-surface {
   border: none;
   border-radius: 0;
@@ -251,8 +261,10 @@
 }
 .ham-appearance-plain .ham-surface-header {
   border-bottom: none;
+  padding: 4px 14px 0;
+  font-size: 12px;
   font-weight: 500;
-  opacity: 0.7;
+  color: var(--ham-muted);
 }
 .ham-appearance-plain .ham-surface-active {
   box-shadow: inset 3px 0 0 0 var(--ham-accent);

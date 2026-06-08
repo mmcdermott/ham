@@ -30,6 +30,7 @@ import { getHamSurfaceSnapshot, surfaceSnapshotFromDoc } from "./snapshot/getHam
 import type {
   HamBlockId,
   HamBranchChildSummary,
+  HamBranchMode,
   HamBranchRequestEvent,
   HamCollaborationProvider,
   HamEditorHandle,
@@ -202,7 +203,7 @@ function HamEditorInner<AnnotationData = unknown>(
 
   // Branch handler: capture the snapshot synchronously (spec §5.7), then emit.
   const handleBranch = useStable(
-    (blockId: HamBlockId) => {
+    (blockId: HamBlockId, mode: HamBranchMode = "branch") => {
       if (!editor) return;
       const surfaceSnapshot = snapshotOf(editor);
       const blockSnapshot = surfaceSnapshot.blocks[blockId];
@@ -213,6 +214,7 @@ function HamEditorInner<AnnotationData = unknown>(
         blockSnapshot,
         surfaceSnapshot,
         textPreview: blockSnapshot.textPreview,
+        mode,
         save: async () => buildSavePayload(editor),
       };
       onBranchRequest?.(event);
