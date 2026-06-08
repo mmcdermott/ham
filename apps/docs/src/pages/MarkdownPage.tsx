@@ -1,7 +1,22 @@
 import { useMemo, useState } from "react";
 import { HamEditor, createExampleAnnotationRegistry, type HamEditorProps } from "@ham/editor";
 
+import { LiveExample } from "../demos/LiveExample";
 import { annotationContext } from "../lib/examples";
+
+const SOURCE = `import { HamEditor, createExampleAnnotationRegistry } from "@ham/editor";
+import "@ham/editor/styles.css";
+
+// A surface is one markdown document — StarterKit marks, task lists, GFM
+// tables, fenced code (highlighted), and inline/display KaTeX math all parse
+// from markdown and round-trip back to it.
+<HamEditor
+  surfaceId="md-doc"
+  rootBlockId="blk_md"
+  value={{ kind: "markdown", markdown: SAMPLE }}
+  annotations={createExampleAnnotationRegistry()}
+  annotationContext={annotationContext}
+/>;`;
 
 type Registry = HamEditorProps["annotations"];
 
@@ -86,9 +101,18 @@ const SYNTAX: { feature: string; syntax: string; renders: string }[] = [
   {
     feature: "Code block",
     syntax: "``` lang …  ```",
-    renders: "<pre><code> (language label kept)",
+    renders: "<pre><code> — syntax-highlighted, with a language picker + copy button",
   },
-  { feature: "Table", syntax: "| a | b | …", renders: "<table> (GFM; resizable)" },
+  {
+    feature: "Table",
+    syntax: "| a | b | …",
+    renders: "<table> (GFM; resizable; editable as a table or as markdown)",
+  },
+  {
+    feature: "Image",
+    syntax: "![alt](src)",
+    renders: "<img> — paste/drop/upload via your onImageUpload handler",
+  },
   { feature: "Horizontal rule", syntax: "---", renders: "<hr>" },
 ];
 
@@ -110,24 +134,24 @@ export function MarkdownPage() {
         what the package renders.
       </p>
 
-      <div className="doc-live">
-        <div className="doc-live-head">
-          <span>Live editor — edit me</span>
+      <LiveExample
+        title="Live editor — edit me"
+        source={SOURCE}
+        controls={
           <button type="button" className="demo-btn" onClick={() => setKey((k) => k + 1)}>
             Reset
           </button>
-        </div>
-        <div className="doc-live-body">
-          <HamEditor
-            key={key}
-            surfaceId="md-doc"
-            rootBlockId="blk_md"
-            value={{ kind: "markdown", markdown: SAMPLE }}
-            annotations={registry}
-            annotationContext={annotationContext}
-          />
-        </div>
-      </div>
+        }
+      >
+        <HamEditor
+          key={key}
+          surfaceId="md-doc"
+          rootBlockId="blk_md"
+          value={{ kind: "markdown", markdown: SAMPLE }}
+          annotations={registry}
+          annotationContext={annotationContext}
+        />
+      </LiveExample>
 
       <h3>Supported syntax</h3>
       <table className="api-table">
