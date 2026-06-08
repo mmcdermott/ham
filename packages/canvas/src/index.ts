@@ -5,6 +5,8 @@ export const HAM_CANVAS_VERSION = "0.1.0";
 // Component + hook
 export { HamCanvas } from "./HamCanvas";
 export { useHamCanvas, siblingEdges, buildReorderEvent } from "./useHamCanvas";
+export { computeSiblingInsert } from "./topology/reorderBranchSiblings";
+export type { SiblingInsert } from "./topology/reorderBranchSiblings";
 export type { UseHamCanvasResult, HamCanvasActions } from "./useHamCanvas";
 
 // Pure topology

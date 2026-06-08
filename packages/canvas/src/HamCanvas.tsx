@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -35,7 +36,39 @@ import { resolveBehavior, resolveLayout } from "./defaults";
 import { useHamCanvas } from "./useHamCanvas";
 import { HamConnectorsOverlay } from "./connectors/HamConnectorsOverlay";
 import type { HamHoverTarget } from "./connectors/connectors";
-import type { HamCanvasColumn, HamCanvasItem, HamCanvasProps, HamSurfaceId } from "./types";
+import type {
+  HamAddSiblingButtonProps,
+  HamCanvasColumn,
+  HamCanvasItem,
+  HamCanvasProps,
+  HamSurfaceId,
+} from "./types";
+
+/**
+ * Default add-sibling affordance — a quiet `+` in the gap between sibling
+ * surfaces (and below the last). Mirrors the editor's branch button: same glyph,
+ * `onMouseDown` preventDefault (so it doesn't steal focus), quiet-until-hover.
+ */
+function DefaultAddSiblingButton({ isAppend, onAddSibling }: HamAddSiblingButtonProps) {
+  const label = isAppend ? "Add a sibling branch" : "Insert a sibling branch here";
+  return (
+    <div className="ham-add-sibling-rail">
+      <button
+        type="button"
+        className="ham-add-sibling"
+        title={label}
+        aria-label={label}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={(e) => {
+          e.preventDefault();
+          onAddSibling();
+        }}
+      >
+        +
+      </button>
+    </div>
+  );
+}
 
 function childrenForSurface(
   surfaceId: HamSurfaceId,
@@ -167,22 +200,6 @@ function SurfaceItem({ item, canvas, props, sortable, depth }: ItemProps) {
             onClick={() => canvas.actions.activate(surface.id, null)}
           >
             Open
-          </button>
-        )}
-        {item.incomingEdge && props.handlers.createSiblingSurface && (
-          <button
-            type="button"
-            className="ham-surface-add-sibling"
-            aria-label="Add sibling branch"
-            onClick={() =>
-              void canvas.actions.addSibling(
-                item.incomingEdge!.fromSurfaceId,
-                item.incomingEdge!.fromBlockId,
-                item.incomingEdge!.id,
-              )
-            }
-          >
-            +
           </button>
         )}
         {item.incomingEdge && props.handlers.deleteSurface && (
@@ -403,6 +420,9 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   }, [canvas.activeSurfaceId, layout.autoScroll]);
 
   const reorderEnabled = behavior.enableSurfaceReorder && !!props.handlers.reorderBranchSiblings;
+  const canAddSibling =
+    behavior.enableSiblingBranchCreation && !!props.handlers.createSiblingSurface;
+  const AddSib = props.slots?.AddSiblingButton ?? DefaultAddSiblingButton;
 
   // Keyboard navigation across surfaces/columns (spec §9.1). Alt+Arrows move
   // along the path and among same-column siblings.
@@ -490,21 +510,54 @@ export function HamCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
           >
             {groupColumn(column).map((group) => {
               const sortable = reorderEnabled && group.items.length > 1;
+              const anchor = group.items[0]?.incomingEdge;
+              // A rail of insert points renders only for real sibling groups
+              // (anchored to a parent block) when sibling creation is enabled.
+              const showInserters = canAddSibling && !!anchor;
+              const inserter = (
+                afterEdgeId: string | undefined,
+                insertOrder: number,
+                isAppend: boolean,
+              ) => (
+                <AddSib
+                  key={`add-${group.key}-${insertOrder}`}
+                  fromSurfaceId={anchor!.fromSurfaceId}
+                  fromBlockId={anchor!.fromBlockId}
+                  {...(afterEdgeId ? { afterEdgeId } : {})}
+                  insertOrder={insertOrder}
+                  siblingCount={group.items.length}
+                  isAppend={isAppend}
+                  onAddSibling={() =>
+                    void canvas.actions.addSibling(anchor!.fromSurfaceId, anchor!.fromBlockId, {
+                      insertOrder,
+                      ...(afterEdgeId ? { afterEdgeId } : {}),
+                    })
+                  }
+                />
+              );
               return (
                 <SortableContext
                   key={group.key}
                   items={group.items.map((i) => i.incomingEdge?.id ?? i.surface.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {group.items.map((item) => (
-                    <SurfaceItem
-                      key={item.surface.id}
-                      item={item as HamCanvasItem}
-                      canvas={canvas}
-                      props={props as HamCanvasProps}
-                      sortable={sortable}
-                      depth={column.depth}
-                    />
+                  {showInserters && inserter(undefined, 0, false)}
+                  {group.items.map((item, i) => (
+                    <Fragment key={item.surface.id}>
+                      <SurfaceItem
+                        item={item as HamCanvasItem}
+                        canvas={canvas}
+                        props={props as HamCanvasProps}
+                        sortable={sortable}
+                        depth={column.depth}
+                      />
+                      {showInserters &&
+                        inserter(
+                          item.incomingEdge!.id,
+                          item.incomingEdge!.order + 1,
+                          i === group.items.length - 1,
+                        )}
+                    </Fragment>
                   ))}
                 </SortableContext>
               );

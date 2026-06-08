@@ -168,6 +168,18 @@ export interface HamCreateSiblingSurfaceEvent {
   fromSurfaceId: HamSurfaceId;
   fromBlockId: HamBlockId;
   insertAfterEdgeId?: HamBranchEdgeId;
+  /**
+   * The 0-based order the canvas computed for the new edge. The host SHOULD
+   * assign this to the new branch edge and shift existing siblings up (see
+   * {@link HamCreateSiblingSurfaceEvent.shiftedSiblingOrders}). If omitted
+   * (legacy hosts), append at the end.
+   */
+  order?: number;
+  /**
+   * Pre-computed new orders for the existing siblings displaced by the insert,
+   * keyed by edge id — so the host persists the renumber without re-deriving it.
+   */
+  shiftedSiblingOrders?: Record<HamBranchEdgeId, number>;
   suggestedTitle?: string;
 }
 
@@ -256,6 +268,10 @@ export interface HamAddSiblingButtonProps {
   afterEdgeId?: HamBranchEdgeId;
   /** Resolved order the new sibling will occupy among its siblings. */
   insertOrder: number;
+  /** Number of existing siblings in the group (for "insert" vs "append" affordances). */
+  siblingCount: number;
+  /** Whether this is the trailing (append) inserter rather than a between-gap one. */
+  isAppend: boolean;
   /** Create the sibling at this position. */
   onAddSibling: () => void;
 }

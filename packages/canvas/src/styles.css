@@ -119,6 +119,41 @@
   cursor: pointer;
 }
 
+/* Add-sibling rail — quiet "+" in the gap between sibling surfaces ----------- */
+.ham-add-sibling-rail {
+  height: var(--ham-surface-gap, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ham-add-sibling {
+  border: 1px dashed transparent;
+  background: transparent;
+  color: var(--ham-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  /* Quiet until the column is hovered or the button is focused — mirrors the
+     editor's branch button. */
+  opacity: 0;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+.ham-column:hover .ham-add-sibling,
+.ham-add-sibling:focus-visible {
+  opacity: 1;
+}
+.ham-add-sibling:hover {
+  background: var(--ham-accent-soft);
+  border-color: var(--ham-accent);
+  color: var(--ham-accent);
+}
+
 .ham-canvas:focus-visible {
   outline: 2px solid var(--ham-accent);
   outline-offset: -2px;
