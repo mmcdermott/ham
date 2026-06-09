@@ -25,7 +25,11 @@ describe("ImagePopover", () => {
 
   it("seeds the inputs from the node's current attrs", () => {
     render(
-      <ImagePopover open={imageTarget("old alt", "old title")} onApply={() => {}} onClose={() => {}} />,
+      <ImagePopover
+        open={imageTarget("old alt", "old title")}
+        onApply={() => {}}
+        onClose={() => {}}
+      />,
     );
     const inputs = document.querySelectorAll<HTMLInputElement>(".ham-link-input");
     expect(inputs[0]!.value).toBe("old alt");
