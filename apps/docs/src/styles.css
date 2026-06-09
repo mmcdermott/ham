@@ -377,6 +377,10 @@ pre.block code {
 }
 .demo-full .demo-stage {
   flex: 1 1 auto;
+  /* Override any inline width/height left by a prior corner-resize so Expand
+     always uses the full overlay (otherwise a resized stage stays small). */
+  width: auto !important;
+  max-width: none !important;
   height: auto !important;
   resize: none;
 }

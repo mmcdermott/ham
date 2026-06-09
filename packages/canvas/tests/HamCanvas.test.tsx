@@ -113,6 +113,37 @@ describe("HamCanvas", () => {
     expect(call.sourceSurfaceSnapshot.blocks[call.sourceBlockId]).toBeDefined();
   });
 
+  it("renders a rail-mode surface as header-only (no body)", async () => {
+    const { container } = render(
+      <HamCanvas
+        rootSurfaceId="s_root"
+        surfaces={{
+          s_root: surface("s_root", "# Root\n\n## A", "Root"),
+          s_a: surface("s_a", "# A branch\n\nsome body text", "A"),
+        }}
+        branchEdges={[
+          {
+            id: "e_a",
+            fromSurfaceId: "s_root",
+            fromBlockId: "blk_A",
+            toSurfaceId: "s_a",
+            order: 0,
+          },
+        ]}
+        activeSurfaceId="s_root"
+        layout={{ inactiveColumnMode: "rail" }}
+        handlers={makeHandlers()}
+      />,
+    );
+    await waitFor(() => {
+      const card = container.querySelector('[data-surface-id="s_a"]');
+      expect(card?.classList.contains("ham-surface-mode-rail")).toBe(true);
+      // Rail collapses to just the header — no body wrapper at all.
+      expect(card?.querySelector(".ham-surface-body")).toBeNull();
+      expect(card?.querySelector(".ham-surface-header")).not.toBeNull();
+    });
+  });
+
   it("re-activates the parent when an ancestor of the active surface is deleted", async () => {
     // Stateful host: root -> A -> B. Deleting A (an ancestor of the active
     // surface) must not leave B as an unreachable orphan.
