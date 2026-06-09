@@ -288,64 +288,70 @@ function SurfaceItem({ item, canvas, props, sortable, depth }: ItemProps) {
     defaultHeader
   );
 
-  const body = (
-    <div
-      className="ham-surface-body"
-      // Activate a surface when the user interacts with its body. In expanded
-      // mode several editors are mounted at once, and clicking back into one
-      // at its existing cursor position won't fire onActiveBlockChange (the
-      // block id is unchanged), so focus-based activation is what keeps the
-      // active surface correct. No-op when this surface is already active.
-      onMouseDownCapture={() => {
-        if (item.pathState !== "active") canvas.actions.activate(surface.id, null);
-      }}
-      onFocusCapture={() => {
-        if (item.pathState !== "active") canvas.actions.activate(surface.id, null);
-      }}
-    >
-      {item.displayMode === "expanded" ? (
-        <HamEditor
-          // Host-provided editor defaults flow through first; the canvas-owned
-          // wiring below (content, branch handlers, snapshot) always wins.
-          {...props.editorDefaults}
-          surfaceId={surface.id}
-          rootBlockId={surface.rootBlockId}
-          value={surface.content}
-          {...(surface.title !== undefined ? { title: surface.title } : {})}
-          editable={!surface.readonly}
-          activeBlockId={canvas.activeBlockId}
-          branchChildren={childrenForSurface(surface.id, props, activeSurfaceSet)}
-          // Disabling branch creation hides every gutter affordance (the action
-          // is guarded too); otherwise use the configured policy.
-          branchPolicy={behavior.enableBranchCreation ? behavior.branchPolicy : NO_BRANCH}
-          {...(props.annotationRegistry ? { annotations: props.annotationRegistry } : {})}
-          {...(props.annotationContext !== undefined
-            ? { annotationContext: props.annotationContext }
-            : {})}
-          onReady={(handle) => {
-            handleRef.current = handle;
-            // Seed the snapshot cache immediately so this surface's child
-            // column orders by document preorder before any edit.
-            canvas.actions.updateSnapshot(surface.id, handle.getSnapshot());
-          }}
-          onChange={scheduleSave}
-          onBranchRequest={(event) => void canvas.actions.branchFromBlock(event)}
-          onSnapshotChange={(snapshot) => canvas.actions.updateSnapshot(surface.id, snapshot)}
-          onActiveBlockChange={(blockId) => canvas.actions.activate(surface.id, blockId)}
-          onOpenBranchChild={(e) => canvas.actions.activate(e.childSurfaceId, null)}
-        />
-      ) : item.displayMode === "outline" ? (
-        <OutlineBody
-          surfaceId={surface.id}
-          snapshot={canvas.snapshotsBySurfaceId[surface.id]}
-          fallbackPreview={previewNode}
-          onActivate={onActivate}
-        />
-      ) : item.displayMode === "rail" ? null : (
-        previewNode
-      )}
-    </div>
-  );
+  const bodyContent: ReactNode =
+    item.displayMode === "expanded" ? (
+      <HamEditor
+        // Host-provided editor defaults flow through first; the canvas-owned
+        // wiring below (content, branch handlers, snapshot) always wins.
+        {...props.editorDefaults}
+        surfaceId={surface.id}
+        rootBlockId={surface.rootBlockId}
+        value={surface.content}
+        {...(surface.title !== undefined ? { title: surface.title } : {})}
+        editable={!surface.readonly}
+        activeBlockId={canvas.activeBlockId}
+        branchChildren={childrenForSurface(surface.id, props, activeSurfaceSet)}
+        // Disabling branch creation hides every gutter affordance (the action
+        // is guarded too); otherwise use the configured policy.
+        branchPolicy={behavior.enableBranchCreation ? behavior.branchPolicy : NO_BRANCH}
+        {...(props.annotationRegistry ? { annotations: props.annotationRegistry } : {})}
+        {...(props.annotationContext !== undefined
+          ? { annotationContext: props.annotationContext }
+          : {})}
+        onReady={(handle) => {
+          handleRef.current = handle;
+          // Seed the snapshot cache immediately so this surface's child
+          // column orders by document preorder before any edit.
+          canvas.actions.updateSnapshot(surface.id, handle.getSnapshot());
+        }}
+        onChange={scheduleSave}
+        onBranchRequest={(event) => void canvas.actions.branchFromBlock(event)}
+        onSnapshotChange={(snapshot) => canvas.actions.updateSnapshot(surface.id, snapshot)}
+        onActiveBlockChange={(blockId) => canvas.actions.activate(surface.id, blockId)}
+        onOpenBranchChild={(e) => canvas.actions.activate(e.childSurfaceId, null)}
+      />
+    ) : item.displayMode === "outline" ? (
+      <OutlineBody
+        surfaceId={surface.id}
+        snapshot={canvas.snapshotsBySurfaceId[surface.id]}
+        fallbackPreview={previewNode}
+        onActivate={onActivate}
+      />
+    ) : item.displayMode === "rail" ? null : (
+      previewNode
+    );
+
+  // Rail surfaces collapse to just their header — no body wrapper at all, so the
+  // card is header-height (not the editor's min-surface-height).
+  const body =
+    bodyContent === null ? null : (
+      <div
+        className="ham-surface-body"
+        // Activate a surface when the user interacts with its body. In expanded
+        // mode several editors are mounted at once, and clicking back into one
+        // at its existing cursor position won't fire onActiveBlockChange (the
+        // block id is unchanged), so focus-based activation is what keeps the
+        // active surface correct. No-op when this surface is already active.
+        onMouseDownCapture={() => {
+          if (item.pathState !== "active") canvas.actions.activate(surface.id, null);
+        }}
+        onFocusCapture={() => {
+          if (item.pathState !== "active") canvas.actions.activate(surface.id, null);
+        }}
+      >
+        {bodyContent}
+      </div>
+    );
 
   const inner: ReactNode = (
     <>

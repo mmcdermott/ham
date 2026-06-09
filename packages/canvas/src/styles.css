@@ -62,6 +62,9 @@
 }
 .ham-columns-scroll .ham-column {
   max-height: 100%;
+  /* min-height:0 lets a short column shrink to its content inside the flex row,
+     so `auto` only paints a scrollbar when the cards genuinely overflow. */
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -176,11 +179,19 @@
 }
 
 .ham-surface-body {
-  /* Driven by layout.minSurfaceHeight / maxSurfaceHeight. */
-  min-height: var(--ham-min-surface-height, 0);
+  /* Size to content by default; only the expanded editor reserves a min height
+     (an outline/card/rail body should be exactly as tall as its content). */
+  min-height: 0;
   max-height: var(--ham-max-surface-height, none);
-  overflow-y: auto;
+  /* Scroll on either axis ONLY when content actually overflows (a wide table or
+     code block scrolls horizontally; nothing scrolls when it fits). */
+  overflow: auto;
   padding: 12px 14px;
+}
+.ham-surface-mode-expanded .ham-surface-body {
+  /* Driven by layout.minSurfaceHeight — the editing surface wants a usable
+     minimum; compact modes do not. */
+  min-height: var(--ham-min-surface-height, 0);
 }
 
 .ham-surface-preview {
