@@ -31,16 +31,17 @@ function typeChar(editor: Editor, ch: string) {
   editor.state.doc.descendants((node, p) => {
     if (node.isText) pos = p + node.nodeSize;
   });
-  pos = pos ?? editor.state.selection.from;
-  editor.commands.setTextSelection(pos);
-  editor.view.someProp("handleTextInput", (f: (...a: unknown[]) => boolean) =>
-    f(editor.view, pos!, pos!, ch),
-  );
+  const at = pos ?? editor.state.selection.from;
+  editor.commands.setTextSelection(at);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editor.view.someProp("handleTextInput", (f: any) => f(editor.view, at, at, ch));
 }
 
 function nodeTypes(editor: Editor): string[] {
   const out: string[] = [];
-  editor.state.doc.descendants((n) => out.push(n.type.name));
+  editor.state.doc.descendants((n) => {
+    out.push(n.type.name);
+  });
   return out;
 }
 
