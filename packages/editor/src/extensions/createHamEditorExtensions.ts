@@ -102,7 +102,11 @@ export function createHamEditorExtensions(opts: HamEditorExtensionOptions = {}):
     // Inline image node — matches marked's inline `![alt](src)` token (so it
     // round-trips inside a paragraph) and accepts data URIs for object-URL/base64
     // hosts. Uploads are wired separately via ImageUpload.
-    Image.configure({ inline: true, allowBase64: true }),
+    // Block image (`![alt](src)` on its own line reads as a figure) with built-in
+    // drag-resize handles. Inline `![alt](src)` mid-paragraph still works.
+    // Resize stores width/height attrs (kept in JSON/collab; markdown export is
+    // size-agnostic by design). Click-to-edit alt/title is wired via ImageEditor.
+    Image.configure({ inline: true, allowBase64: true, resize: { enabled: true, minWidth: 48 } }),
     // Defense-in-depth: strip dangerous link hrefs / image srcs from any source
     // (paste, markdown parse, setContent, collab seed).
     Sanitize.configure(isAllowedImageSrc ? { isAllowedImageSrc } : {}),
