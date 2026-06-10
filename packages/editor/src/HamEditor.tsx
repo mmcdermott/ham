@@ -223,6 +223,12 @@ function HamEditorInner<AnnotationData = unknown>(
   // (PM docs are immutable, so same ref ⇒ same content) collapses that to a
   // single walk per doc — and plain typing produces exactly one doc per stroke.
   const snapshotCacheRef = useRef<{ doc: PMNode; snap: HamSurfaceSnapshot } | null>(null);
+  // The cache key is the doc, but the snapshot also bakes in surfaceId /
+  // rootBlockId / title — drop the cache when those change so a re-titled or
+  // re-identified surface can't serve a stale snapshot for an unchanged doc.
+  useEffect(() => {
+    snapshotCacheRef.current = null;
+  }, [surfaceId, rootBlockId, title]);
   const computeSnapshot = useStable(
     (doc: PMNode): HamSurfaceSnapshot => {
       const cached = snapshotCacheRef.current;
@@ -320,9 +326,15 @@ function HamEditorInner<AnnotationData = unknown>(
     },
     ...initialContent,
     onUpdate({ editor }) {
-      // The open popover anchors to a now-possibly-stale annotation element;
-      // close it on edit (it reopens on the next click against fresh decorations).
+      // Every open popover anchors to a position/element captured at click
+      // time; ANY doc change (remote collab edit, image upload resolving, host
+      // setContent, sanitize pass) can shift those positions, after which a
+      // commit would write to — or link — the wrong range. Close them all on
+      // edit; they reopen on the next click against fresh positions.
       setOpenAnnotation(null);
+      setOpenMath(null);
+      setOpenLink(null);
+      setOpenImage(null);
       onChange?.({
         surfaceId,
         content: { kind: "tiptap-json", json: editor.getJSON() },
@@ -778,6 +790,15 @@ function HamEditorInner<AnnotationData = unknown>(
       tr.setMeta("addToHistory", false);
       editor.view.dispatch(tr);
     }
+    // If the user is looking at the source textarea, resync it to the new
+    // revision — otherwise the stale text would silently overwrite the swap on
+    // the next save/commit.
+    if (modeRef.current === "source") {
+      const md = editor.getMarkdown();
+      sourceEnteredRef.current = md;
+      sourceTextRef.current = md;
+      setSourceText(md);
+    }
   }, [editor, collab, props.revision, value]);
 
   const openType =
@@ -938,8 +959,11 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
           p.on("synced", onSynced);
         }
         // On timeout, unblock mounting but do NOT mark synced — seeding stays
-        // gated on a real sync so late server state can't be duplicated.
-        if (config.initialSyncTimeoutMs) {
+        // gated on a real sync so late server state can't be duplicated. Never
+        // scheduled for an already-synced provider (markSynced above ran before
+        // this line, so its clearTimeout saw nothing to clear — scheduling here
+        // would deliver a spurious "timedout" AFTER "synced").
+        if (config.initialSyncTimeoutMs && !p.synced) {
           timer = setTimeout(() => {
             if (cancelled) return;
             setTimedOut(true);

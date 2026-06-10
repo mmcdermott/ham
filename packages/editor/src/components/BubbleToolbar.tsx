@@ -1,6 +1,6 @@
 import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from "@floating-ui/react";
 import { useEffect, useState } from "react";
-import type { Editor } from "@tiptap/core";
+import { isTextSelection, type Editor } from "@tiptap/core";
 
 export interface BubbleToolbarProps {
   editor: Editor | null;
@@ -76,7 +76,9 @@ export function BubbleToolbar({ editor, enabled = true }: BubbleToolbarProps) {
       setTick((t) => t + 1);
       const { state, view } = editor;
       const { from, to, empty } = state.selection;
-      const isText = state.selection.constructor.name === "TextSelection";
+      // isTextSelection (not constructor.name) — minifiers rename classes in
+      // production bundles, which silently made this always-false.
+      const isText = isTextSelection(state.selection);
       const show =
         editor.isEditable && !empty && isText && !editor.isActive("codeBlock") && view.hasFocus();
       if (!show) {
