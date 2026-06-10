@@ -30,6 +30,7 @@
     "docs:api": "typedoc",
     "docs:build": "pnpm build && pnpm docs:api && pnpm -F @ham/docs build",
     "lint:pkg": "pnpm build && pnpm -r --filter \"./packages/*\" exec publint",
+    "size": "size-limit",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@changesets/cli": "^2",
     "@eslint/js": "^9",
+    "@size-limit/file": "^12.1.0",
     "@types/node": "^22",
     "axe-core": "^4.12.1",
     "eslint": "^9",
@@ -45,6 +47,7 @@
     "globals": "^16",
     "prettier": "^3",
     "publint": "^0.3",
+    "size-limit": "^12.1.0",
     "typedoc": "^0.28.19",
     "typescript": "^5",
     "typescript-eslint": "^8",

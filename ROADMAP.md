@@ -290,12 +290,11 @@ features, in either track.
 - ~~**Per-package READMEs + CONTRIBUTING**~~ `[P2 · S]` — **✅ DONE**. Original: — `files:["dist"]` means the npm tarball ships with
   no README (blank package page); add minimal per-package READMEs and a CONTRIBUTING covering the
   changeset workflow.
-- **CI matrix + bundle-size budgets + automated deps** `[P2 · S each]` — _partly done:_ CI now runs
-  a **Node 22 + 24 matrix**, and **Dependabot** (npm + actions) + **CODEOWNERS** were added. Still
-  open: `size-limit` bundle budgets. Original: — extend CI to Node 22 + 24
-  (and optionally Windows, given the tsup `copyFileSync` styles step); add `size-limit` budgets (the
-  editor pulls in the full Tiptap stack + katex + lowlight + yjs); add Dependabot/Renovate + CODEOWNERS
-  (a manual Actions bump already bit this repo once).
+- **CI matrix + bundle-size budgets + automated deps** `[P2 · S each]` — **✅ DONE.** CI runs a
+  **Node 22 + 24 matrix**; **Dependabot** (npm + actions) + **CODEOWNERS** were added; and
+  **`size-limit`** budgets now gate each package's published ESM bundle in CI (`.size-limit.json`,
+  `pnpm size` — editor 25.9 kB / 30 kB cap, canvas 13.9 kB / 18 kB cap, both gzipped) so a
+  dependency or feature that bloats the bundle fails the build.
 
 ### A8 · Docs & developer experience
 
