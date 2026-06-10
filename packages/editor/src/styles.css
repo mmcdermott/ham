@@ -774,3 +774,46 @@
 .ham-editor[data-mode="rich"] .ProseMirror img {
   cursor: pointer;
 }
+/* Floating formatting toolbar over a text selection (BubbleToolbar). */
+.ham-bubble-toolbar {
+  z-index: 45;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: #fff;
+  border: 1px solid var(--ham-surface-border, #e3e1ee);
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(20, 18, 40, 0.2);
+}
+.ham-bubble-btn {
+  min-width: 28px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  border-radius: 5px;
+  padding: 4px 7px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ham-bubble-btn[data-mark="bold"] {
+  font-weight: 700;
+}
+.ham-bubble-btn[data-mark="italic"] {
+  font-style: italic;
+}
+.ham-bubble-btn[data-mark="strike"] {
+  text-decoration: line-through;
+}
+.ham-bubble-btn[data-mark="code"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+.ham-bubble-btn:hover {
+  background: var(--ham-accent-soft, #efecff);
+}
+.ham-bubble-btn-active {
+  background: var(--ham-accent, #6f5cff);
+  color: #fff;
+}
