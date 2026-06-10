@@ -24,6 +24,7 @@ import { MathPopover, type OpenMath } from "./components/MathPopover";
 import { LinkPopover } from "./components/LinkPopover";
 import type { LinkEditTarget, LinkEditorContext } from "./extensions/link-editor";
 import { ImagePopover } from "./components/ImagePopover";
+import { BubbleToolbar } from "./components/BubbleToolbar";
 import type { ImageEditTarget, ImageEditorContext } from "./extensions/image-editor";
 import { createHocuspocusCollab, flushAndDestroy } from "./collab/hocuspocus";
 import { BlockFold, blockFoldKey, type BlockFoldContext } from "./extensions/block-fold";
@@ -801,6 +802,7 @@ function HamEditorInner<AnnotationData = unknown>(
         onClose={() => setOpenLink(null)}
       />
       <ImagePopover open={openImage} onApply={applyImage} onClose={() => setOpenImage(null)} />
+      <BubbleToolbar editor={editor} enabled={props.bubbleMenu !== false && !inSource} />
     </div>
   );
 }

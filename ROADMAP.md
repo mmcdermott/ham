@@ -138,9 +138,11 @@ features, in either track.
 - **IME composition + source-textarea ergonomics** `[P2 · M]` — no `isComposing` guards exist,
   so the annotation type-ahead and task input rules can misfire mid-composition for CJK/IME
   users; the source-mode textarea also steals Tab. Add composition guards and Tab-to-indent.
-- **Optional formatting toolbar / bubble menu** `[P2 · M]` — there's no formatting UI at all
-  (markdown input rules + shortcuts only). Add an off-by-default, slot-driven selection bubble
-  menu / toolbar so consumers can opt into WYSIWYG affordances without the package imposing them.
+- **Optional formatting toolbar / bubble menu** `[P2 · M]` — **✅ DONE.** `BubbleToolbar` shows
+  a floating bold / italic / strikethrough / inline-code toolbar over a non-empty text selection
+  (Floating-UI virtual-element anchored to the selection rect; `aria-pressed` reflects active
+  marks; hidden in code blocks, source mode, and when not editable). On by default; opt out with
+  `bubbleMenu={false}`. _(Marks only — links/images keep their dedicated click popovers.)_
 - **Per-block / collab-safe source edit** `[P2 · L]` — source mode is disabled under collab
   (a full re-parse would clobber the Y.Doc). A per-block source editor that splices only one
   block's slice back (preserving its id) works under collab and avoids the whole-doc re-stamp.

@@ -509,6 +509,13 @@ export interface HamEditorProps<AnnotationData = unknown> {
   /** Fires when the edit surface toggles between rich and raw-markdown source. */
   onModeChange?: (mode: HamEditorMode) => void;
 
+  /**
+   * Show a floating formatting toolbar (bold / italic / strikethrough / inline
+   * code) over a non-empty text selection. Default true; set false to disable
+   * (e.g. a read-only or minimal surface).
+   */
+  bubbleMenu?: boolean;
+
   slots?: HamEditorSlots;
   className?: string;
 
