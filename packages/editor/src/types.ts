@@ -399,7 +399,10 @@ export type HamImageUploadHandler = (
  * Which surface the editor presents: the rich WYSIWYG editor (`"rich"`) or a
  * raw-markdown `<textarea>` (`"source"`). Source mode lets a user edit the
  * literal markdown — e.g. hand-tweak a GFM table or a math expression — and
- * re-parses back into the rich editor on switch.
+ * re-parses back into the rich editor on switch. Source edits emit `onChange`
+ * (as `{ kind: "markdown" }` content) and are committed automatically whenever
+ * the handle is read (`save()`, `getMarkdown()`, …), so they persist even if
+ * the surface saves or unmounts before switching back to rich.
  */
 export type HamEditorMode = "rich" | "source";
 
@@ -411,6 +414,12 @@ export interface HamEditorHandle {
   surfaceId: HamSurfaceId;
   focusBlock(blockId: HamBlockId, opts?: { scroll?: boolean }): void;
   scrollBlockIntoView(blockId: HamBlockId, opts?: ScrollIntoViewOptions): void;
+  /**
+   * Reads are source-aware: while in source mode, edited markdown is first
+   * committed (id-preserving) into the editor, so getSnapshot / getMarkdown /
+   * getJSON / save always reflect the text visible to the user — source mode
+   * is never an invisible draft buffer.
+   */
   getSnapshot(): HamSurfaceSnapshot;
   getMarkdown(): string;
   getJSON(): unknown;

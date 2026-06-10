@@ -175,6 +175,10 @@ function HamEditorInner<AnnotationData = unknown>(
   const sourceEnteredRef = useRef("");
   const onModeChangeRef = useRef(onModeChange);
   onModeChangeRef.current = onModeChange;
+  // Read by the (stable) source-commit helper so a fresh host closure each
+  // render is always honored without churning the imperative handle.
+  const onSnapshotChangeRef = useRef(onSnapshotChange);
+  onSnapshotChangeRef.current = onSnapshotChange;
   // setMode is invoked from the imperative handle (captured once); route through
   // a ref so it always runs the latest closure (current editor, source text).
   const applyModeRef = useRef<(next: HamEditorMode) => void>(() => {});
@@ -422,9 +426,43 @@ function HamEditorInner<AnnotationData = unknown>(
     [editor],
   );
 
+  // Commit edited source markdown into the live editor, preserving block ids.
+  // This is the single convergence point for setMode("rich"), save(),
+  // getMarkdown(), getJSON(), and getSnapshot() while in source mode — whatever
+  // the read path, the text visible in the textarea is what gets read and
+  // persisted, never the stale pre-source document. No-op when unchanged, so a
+  // "peek at source" round-trip never re-stamps ids.
+  const commitSourceText = useStable(
+    (opts?: { emitUpdate?: boolean }) => {
+      if (!editor) return;
+      if (sourceTextRef.current === sourceEnteredRef.current) return;
+      // Capture the pre-edit block identities, re-parse the markdown (which
+      // re-stamps fresh ids), then restore ids onto the matching blocks so
+      // branch edges / annotations keyed on them survive the round-trip.
+      const oldIdentities = collectBlockIdentities(editor.state.doc);
+      editor.commands.setContent(sourceTextRef.current, {
+        emitUpdate: opts?.emitUpdate ?? false,
+        contentType: "markdown",
+      } as Parameters<typeof editor.commands.setContent>[1]);
+      const plan = planBlockIdRestore(oldIdentities, editor.state.doc);
+      if (plan.length) {
+        const tr = editor.state.tr;
+        for (const { pos, id } of plan) tr.setNodeAttribute(pos, "dataBlockId", id);
+        tr.setMeta("addToHistory", false);
+        editor.view.dispatch(tr);
+      }
+      // The editor now equals the source text: a later setMode("rich") must
+      // not re-parse (and re-stamp ids) a second time.
+      sourceEnteredRef.current = sourceTextRef.current;
+      // Snapshot consumers (e.g. canvas column ordering) see the committed doc
+      // even when the commit bypassed onUpdate (emitUpdate: false).
+      onSnapshotChangeRef.current?.(snapshotOf(editor));
+    },
+    [editor, snapshotOf],
+  );
+
   // Switch the edit surface. To source: snapshot the current markdown into the
-  // textarea. To rich: re-parse the (possibly edited) markdown — but only when it
-  // actually changed, so a "peek at source" round-trip preserves block ids.
+  // textarea. To rich: commit the (possibly edited) markdown.
   applyModeRef.current = (next: HamEditorMode) => {
     if (next === modeRef.current) return;
     if (next === "source") {
@@ -439,23 +477,7 @@ function HamEditorInner<AnnotationData = unknown>(
       return;
     }
     // → rich
-    if (editor && sourceTextRef.current !== sourceEnteredRef.current) {
-      // Capture the pre-edit block identities, re-parse the markdown (which
-      // re-stamps fresh ids), then restore ids onto the matching blocks so
-      // branch edges / annotations keyed on them survive the round-trip.
-      const oldIdentities = collectBlockIdentities(editor.state.doc);
-      editor.commands.setContent(sourceTextRef.current, {
-        emitUpdate: true,
-        contentType: "markdown",
-      } as Parameters<typeof editor.commands.setContent>[1]);
-      const plan = planBlockIdRestore(oldIdentities, editor.state.doc);
-      if (plan.length) {
-        const tr = editor.state.tr;
-        for (const { pos, id } of plan) tr.setNodeAttribute(pos, "dataBlockId", id);
-        tr.setMeta("addToHistory", false);
-        editor.view.dispatch(tr);
-      }
-    }
+    commitSourceText({ emitUpdate: true });
     setEditorMode("rich");
     modeRef.current = "rich";
     onModeChangeRef.current?.("rich");
@@ -475,11 +497,14 @@ function HamEditorInner<AnnotationData = unknown>(
         surfaceSnapshot,
         textPreview: blockSnapshot.textPreview,
         mode,
-        save: async () => buildSavePayload(editor),
+        save: async () => {
+          if (modeRef.current === "source") commitSourceText();
+          return buildSavePayload(editor);
+        },
       };
       onBranchRequest?.(event);
     },
-    [editor, surfaceId, snapshotOf, buildSavePayload, onBranchRequest],
+    [editor, surfaceId, snapshotOf, buildSavePayload, onBranchRequest, commitSourceText],
   );
 
   const handleOpenChild = useStable(
@@ -646,10 +671,25 @@ function HamEditorInner<AnnotationData = unknown>(
         const el = editor.view.dom.querySelector<HTMLElement>(`[data-block-id="${blockId}"]`);
         el?.scrollIntoView(opts ?? { block: "nearest" });
       },
-      getSnapshot: () => snapshotOf(editor),
-      getMarkdown: () => editor.getMarkdown(),
-      getJSON: () => editor.getJSON(),
-      save: async () => buildSavePayload(editor),
+      // Every read path is source-aware: while in source mode, edited markdown
+      // is committed (id-preserving) into the editor first, so the text the
+      // user sees is the text that reads/saves — never a stale document.
+      getSnapshot: () => {
+        if (modeRef.current === "source") commitSourceText();
+        return snapshotOf(editor);
+      },
+      getMarkdown: () => {
+        if (modeRef.current === "source") commitSourceText();
+        return editor.getMarkdown();
+      },
+      getJSON: () => {
+        if (modeRef.current === "source") commitSourceText();
+        return editor.getJSON();
+      },
+      save: async () => {
+        if (modeRef.current === "source") commitSourceText();
+        return buildSavePayload(editor);
+      },
       setContent(content, opts) {
         const emitUpdate = opts?.emitUpdate ?? true;
         if (content.kind === "markdown") {
@@ -675,7 +715,7 @@ function HamEditorInner<AnnotationData = unknown>(
       getUnsafeTiptapEditor: () => editor,
     };
     onReadyRef.current(handle);
-  }, [editor, surfaceId, snapshotOf, buildSavePayload]);
+  }, [editor, surfaceId, snapshotOf, buildSavePayload, commitSourceText]);
 
   // Collaboration seed-if-empty (spec §5.14): the gate mounts this only after
   // the provider has synced, so `editor.isEmpty` reflects the server's state. We
@@ -768,6 +808,13 @@ function HamEditorInner<AnnotationData = unknown>(
           onChange={(e) => {
             sourceTextRef.current = e.target.value;
             setSourceText(e.target.value);
+            // Source edits are real edits: emit them so hosts (and the canvas
+            // autosave, which schedules a save() on every change) never treat
+            // the textarea as an invisible draft buffer.
+            onChange?.({
+              surfaceId,
+              content: { kind: "markdown", markdown: e.target.value },
+            });
           }}
         />
       )}

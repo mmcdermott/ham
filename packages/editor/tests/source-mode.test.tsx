@@ -126,6 +126,89 @@ describe("source mode (edit as table or markdown)", () => {
     expect(getHandle().getSnapshot().blockOrder).toEqual(before);
   });
 
+  it("getMarkdown()/getJSON()/getSnapshot() reflect textarea edits while still in source mode", async () => {
+    const { container, getHandle } = await mount("# Title\n\nOld paragraph.\n");
+    getHandle().setMode("source");
+    const ta = await waitFor(() => {
+      const el = container.querySelector<HTMLTextAreaElement>(".ham-source-editor");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(ta, { target: { value: "# Title\n\nNew paragraph.\n" } });
+
+    // Still in source mode — reads must see the edited text, not the stale doc.
+    expect(getHandle().getMode()).toBe("source");
+    expect(getHandle().getMarkdown()).toContain("New paragraph.");
+    expect(JSON.stringify(getHandle().getJSON())).toContain("New paragraph.");
+    const previews = Object.values(getHandle().getSnapshot().blocks).map((b) => b.textPreview);
+    expect(previews.some((p) => p.includes("New paragraph"))).toBe(true);
+  });
+
+  it("save() includes source edits while still in source mode (the canvas unmount-flush path)", async () => {
+    const { container, getHandle } = await mount("# Title\n\nOld paragraph.\n");
+    getHandle().setMode("source");
+    const ta = await waitFor(() => {
+      const el = container.querySelector<HTMLTextAreaElement>(".ham-source-editor");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(ta, { target: { value: "# Title\n\nEdited in source.\n" } });
+
+    const payload = await getHandle().save();
+    expect(payload.content.markdown).toContain("Edited in source.");
+    expect(JSON.stringify(payload.content.tiptapJson)).toContain("Edited in source.");
+    const previews = Object.values(payload.snapshot.blocks).map((b) => b.textPreview);
+    expect(previews.some((p) => p.includes("Edited in source"))).toBe(true);
+  });
+
+  it("emits onChange (markdown content) for source textarea edits", async () => {
+    const onChange = vi.fn();
+    const { container, getHandle } = await mount("Hello.\n", { onChange });
+    getHandle().setMode("source");
+    const ta = await waitFor(() => {
+      const el = container.querySelector<HTMLTextAreaElement>(".ham-source-editor");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    onChange.mockClear();
+    fireEvent.change(ta, { target: { value: "Hello, edited.\n" } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0]![0]).toEqual({
+      surfaceId: "s1",
+      content: { kind: "markdown", markdown: "Hello, edited.\n" },
+    });
+  });
+
+  it("preserves block ids through a save-from-source, and does not re-parse again on setMode('rich')", async () => {
+    const { container, getHandle } = await mount("# Method\n\nWe describe it.\n");
+    const idOf = (preview: string) => {
+      const snap = getHandle().getSnapshot();
+      return Object.values(snap.blocks).find((x) => x.textPreview.startsWith(preview))?.id;
+    };
+    const methodId = idOf("Method");
+    const paraId = idOf("We describe");
+    expect([methodId, paraId].every(Boolean)).toBe(true);
+
+    getHandle().setMode("source");
+    const ta = await waitFor(() => {
+      const el = container.querySelector<HTMLTextAreaElement>(".ham-source-editor");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(ta, { target: { value: "# Method\n\nWe describe it precisely.\n" } });
+
+    // save() commits the source text (id-preserving)…
+    await getHandle().save();
+    expect(idOf("Method")).toBe(methodId);
+    expect(idOf("We describe it precisely")).toBe(paraId);
+
+    // …and the later switch back to rich must NOT re-parse (and re-stamp) again.
+    getHandle().setMode("rich");
+    await waitFor(() => expect(getHandle().getMode()).toBe("rich"));
+    expect(idOf("Method")).toBe(methodId);
+    expect(idOf("We describe it precisely")).toBe(paraId);
+  });
+
   it("is unavailable under collaboration (setMode is a no-op)", async () => {
     const ydoc = new Y.Doc();
     const provider: HamCollaborationProvider = {
