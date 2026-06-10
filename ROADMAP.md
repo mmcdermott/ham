@@ -98,11 +98,17 @@ features, in either track.
 
 ### A2 · Editor content features
 
-- **Block-level Figure node with caption** `[P1 · L]` — images are inline-only and absent
-  from `DEFAULT_HAM_BLOCK_TYPES`, so they get no block id and are not branchable / foldable
-  / annotatable and have no caption. Add a `figure` node (img + optional `figcaption`),
-  register it as a leaf block type, and serialize as a standalone-paragraph `![alt](src)`
-  with a parse rule that lifts it into a figure.
+- **Image resize handles** `[P1 · M]` — **✅ DONE.** The Image extension's built-in resize is
+  enabled (`resize: { enabled: true, minWidth: 48 }`): drag handles on a selected image, with
+  `width`/`height` persisted as schema attrs (kept in JSON / collaboration; markdown export stays
+  size-agnostic by design). The node view keeps a real `<img>`, so click-to-edit alt + the gutter
+  still resolve the node.
+- **Block-level Figure node with caption** `[P1 · L]` — _deferred (deliberate)._ A separate
+  `figure`/`figcaption` schema node would let images be block ids / branchable / captioned, but a
+  caption has no clean markdown representation and would regress the round-trip fidelity just
+  hardened (footnotes/HTML excluded for the same reason). The image **title** (editable via the
+  alt/title popover) serves as the caption-equivalent and round-trips as `![alt](src "title")`.
+  Revisit only if a host needs true block-figure semantics.
 - **Image alt-text / title editor** `[P1 · M]` — **✅ DONE.** `ImageEditor` extension +
   `ImagePopover`: clicking any image opens a Floating-UI popover to edit its alt text
   (accessibility-critical) and title, written straight back to the node attrs (and so to

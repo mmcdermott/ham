@@ -159,7 +159,9 @@ routed through your \`onImageUpload\` handler, so *you* decide where the bytes g
 you return — and \`![alt](src)\` round-trips through markdown.
 
 **Click any image** to edit its alt text (for accessibility) and title; the
-edit writes straight back to the \`![alt](src "title")\` markdown.
+edit writes straight back to the \`![alt](src "title")\` markdown. **Select an
+image and drag its handles** to resize it — the width is kept in the document
+(markdown export stays size-agnostic).
 `;
 
 const IMG_SRC = `import { useRef } from "react";
