@@ -47,3 +47,5 @@ jobs:
         run: pnpm -F @ham/docs build
       - name: Packaging check (publint)
         run: pnpm -r --filter "./packages/*" exec publint
+      - name: Bundle size budgets (size-limit)
+        run: pnpm size
