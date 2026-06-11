@@ -24,9 +24,11 @@ product that consumes them.
 - **Tests:** ~300 green, all jsdom. CI runs a Node 22 + 24 matrix
   (build → format → typecheck → lint(--max-warnings 0) → test → coverage →
   TypeDoc → docs build → publint --strict → size-limit) plus a React 18
-  compatibility leg. Releases are tag-only via Changesets (git tags + GitHub
-  Releases; **v0.2.0** is the current baseline — npm publishing waits on the
-  scope/token decision below).
+  compatibility leg. Releases use Changesets — a Version Packages PR bumps
+  versions, and merging it publishes to npm via trusted publishing (OIDC, no
+  token) and creates git tags + GitHub Releases; **v0.2.0** is the current
+  baseline. Publishing is wired and waits only on the one-time npm org +
+  trusted-publisher setup below.
 
 > **Recently shipped (2026-06-10/11 audit + hardening, PRs #55–66).** A deep
 > scan (an external LLM review adversarially verified finding-by-finding, plus
@@ -70,12 +72,13 @@ preservation, SSR gate, XSS hardening — plus everything in the "recently
 shipped" note above). What follows is the _remaining_ verified backlog from
 the audit, in priority order.
 
-- **Decide the npm scope, then enable publishing** `[P0-decision · S]` — the
-  `@hiermark` npm scope is unclaimed/unverified and only the maintainer can claim
-  it (npmjs.com/org/create) or choose a rename (~63 files reference `@hiermark/`).
-  Then add an `NPM_TOKEN` secret and flip `release.yml` from
-  `publish: pnpm changeset tag` back to `publish: pnpm release`. Until then,
-  releases are git tags + GitHub Releases (working, proven at v0.2.0).
+- **Claim the npm org + enable publishing** `[P0-decision · S]` — the project
+  was rebranded `@ham` → `@hiermark` (the `@ham` scope was taken) and
+  `release.yml` now publishes via Changesets + npm trusted publishing (OIDC, no
+  token). Remaining one-time step (maintainer only): create the `hiermark` npm
+  org (npmjs.com/org/create) and add a trusted publisher for each package on
+  npmjs.com pointing at `mmcdermott/hiermark` + the `Release` workflow. Until
+  then, releases are git tags + GitHub Releases (working, proven at v0.2.0).
 - **Collab gate: unreachable server spins forever** `[P2 · M]` — the
   Hocuspocus provider's constructor auto-attaches and never rejects, so
   `connect()` resolves instantly: the retry/backoff/error path is unreachable

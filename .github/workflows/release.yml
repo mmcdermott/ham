@@ -11,7 +11,9 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
-  # Required for npm provenance (publishConfig.provenance: true) via OIDC.
+  # OIDC: lets npm mint a short-lived token via trusted publishing (no
+  # NPM_TOKEN secret) and auto-attach provenance. Requires a trusted publisher
+  # configured for each package on npmjs.com pointing at this repo + workflow.
   id-token: write
 
 jobs:
@@ -27,6 +29,12 @@ jobs:
           cache: "pnpm"
           registry-url: "https://registry.npmjs.org"
       - run: pnpm install --frozen-lockfile
+      # OIDC trusted publishing needs npm CLI >= 11.5.1 (Node 22.x already
+      # satisfies the >= 22.14.0 requirement). changeset publish shells out to
+      # this npm, so upgrading it here is what makes OIDC work — pnpm's own
+      # publish does not support OIDC yet.
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
       # Gate releases on the build + test suite: a broken main can still open a
       # Version Packages PR, but it can never tag a release.
       - name: Build packages
@@ -43,9 +51,8 @@ jobs:
           # `changeset publish`, which publishes every package whose version is
           # not yet on npm and creates the matching git tags + GitHub Releases.
           # Already-published versions are skipped, so re-runs are safe.
-          # Prerequisites (one-time): create the npm org `hiermark`, mint a
-          # granular automation token, and add it as the NPM_TOKEN repo secret.
+          # Auth is OIDC trusted publishing (no NPM_TOKEN) — see the id-token
+          # note above and CONTRIBUTING.md. Provenance is attached automatically.
           publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
