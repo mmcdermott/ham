@@ -278,7 +278,9 @@ describe("HiermarkCanvas", () => {
     );
 
     // Delete A (ancestor of active B).
-    const del = container.querySelector<HTMLElement>('[data-surface-id="s_a"] .hiermark-surface-delete');
+    const del = container.querySelector<HTMLElement>(
+      '[data-surface-id="s_a"] .hiermark-surface-delete',
+    );
     expect(del).not.toBeNull();
     fireEvent.click(del!);
 
@@ -397,7 +399,9 @@ describe("HiermarkCanvas", () => {
     );
     // In expanded mode, both surfaces mount full editors.
     await waitFor(() => expect(container.querySelectorAll(".hiermark-editor").length).toBe(2));
-    const body = container.querySelector<HTMLElement>('[data-surface-id="s_a"] .hiermark-surface-body')!;
+    const body = container.querySelector<HTMLElement>(
+      '[data-surface-id="s_a"] .hiermark-surface-body',
+    )!;
     fireEvent.mouseDown(body);
     expect(onActiveChange).toHaveBeenLastCalledWith({ surfaceId: "s_a", blockId: null });
   });
@@ -566,7 +570,9 @@ describe("HiermarkCanvas", () => {
     // s_a has a child (s_b); deleting it must be refused package-side.
     let del: HTMLElement | null = null;
     await waitFor(() => {
-      del = container.querySelector<HTMLElement>('[data-surface-id="s_a"] .hiermark-surface-delete');
+      del = container.querySelector<HTMLElement>(
+        '[data-surface-id="s_a"] .hiermark-surface-delete',
+      );
       expect(del).not.toBeNull();
     });
     fireEvent.click(del!);

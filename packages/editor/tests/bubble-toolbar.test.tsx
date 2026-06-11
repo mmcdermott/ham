@@ -34,7 +34,9 @@ describe("BubbleToolbar", () => {
     await waitFor(() => {
       expect(document.querySelector(".hiermark-bubble-toolbar")).not.toBeNull();
     });
-    const bold = document.querySelector<HTMLButtonElement>('.hiermark-bubble-btn[data-mark="bold"]')!;
+    const bold = document.querySelector<HTMLButtonElement>(
+      '.hiermark-bubble-btn[data-mark="bold"]',
+    )!;
     expect(bold.getAttribute("aria-pressed")).toBe("false");
     bold.click();
     expect(editor.isActive("bold")).toBe(true);

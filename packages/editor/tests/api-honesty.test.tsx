@@ -1,7 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, waitFor, cleanup } from "@testing-library/react";
 import { HiermarkEditor } from "../src/HiermarkEditor";
-import type { HiermarkCollaborationConfig, HiermarkEditorHandle, HiermarkEditorProps } from "../src/types";
+import type {
+  HiermarkCollaborationConfig,
+  HiermarkEditorHandle,
+  HiermarkEditorProps,
+} from "../src/types";
 
 afterEach(() => cleanup());
 

@@ -135,7 +135,9 @@ export function BubbleToolbar({ editor, enabled = true }: BubbleToolbarProps) {
           <button
             key={b.name}
             type="button"
-            className={"hiermark-bubble-btn" + (b.active(editor) ? " hiermark-bubble-btn-active" : "")}
+            className={
+              "hiermark-bubble-btn" + (b.active(editor) ? " hiermark-bubble-btn-active" : "")
+            }
             data-mark={b.name}
             title={b.title}
             aria-label={b.title}

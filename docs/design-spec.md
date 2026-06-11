@@ -895,7 +895,10 @@ export interface HiermarkCanvasProps<SurfaceMeta = unknown, EdgeMeta = unknown> 
   handlers: HiermarkCanvasHandlers<SurfaceMeta, EdgeMeta>;
 
   onReady?: (handle: HiermarkCanvasHandle) => void;
-  onActiveChange?: (active: { surfaceId: HiermarkSurfaceId; blockId?: HiermarkBlockId | null }) => void;
+  onActiveChange?: (active: {
+    surfaceId: HiermarkSurfaceId;
+    blockId?: HiermarkBlockId | null;
+  }) => void;
 }
 ```
 
@@ -984,7 +987,9 @@ export interface HiermarkCanvasHandlers<SurfaceMeta = unknown, EdgeMeta = unknow
     event: HiermarkCreateSiblingSurfaceEvent,
   ): Promise<HiermarkCreateSurfaceResult<SurfaceMeta, EdgeMeta>>;
 
-  reorderBranchSiblings?(event: HiermarkReorderBranchSiblingsEvent): Promise<HiermarkBranchEdge<EdgeMeta>[]>;
+  reorderBranchSiblings?(
+    event: HiermarkReorderBranchSiblingsEvent,
+  ): Promise<HiermarkBranchEdge<EdgeMeta>[]>;
 
   deleteSurface?(event: HiermarkDeleteSurfaceEvent): Promise<void>;
 

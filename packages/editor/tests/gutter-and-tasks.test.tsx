@@ -2,7 +2,11 @@ import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import type { Editor } from "@tiptap/core";
 import { render, waitFor, cleanup } from "@testing-library/react";
 import { HiermarkEditor } from "../src/HiermarkEditor";
-import type { HiermarkBlockSlotProps, HiermarkEditorHandle, HiermarkEditorProps } from "../src/types";
+import type {
+  HiermarkBlockSlotProps,
+  HiermarkEditorHandle,
+  HiermarkEditorProps,
+} from "../src/types";
 
 afterEach(() => cleanup());
 beforeAll(() => {

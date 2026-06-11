@@ -4,7 +4,10 @@ const TOKENS: { name: string; what: string }[] = [
   { name: "--hiermark-text / --hiermark-muted", what: "Body and secondary text." },
   { name: "--hiermark-surface-bg / --hiermark-surface-border", what: "Card background + border." },
   { name: "--hiermark-canvas-bg", what: "Canvas backdrop (@hiermark/canvas)." },
-  { name: "--hiermark-inline-code-bg / --hiermark-th-bg", what: "Inline code + table header fills." },
+  {
+    name: "--hiermark-inline-code-bg / --hiermark-th-bg",
+    what: "Inline code + table header fills.",
+  },
   { name: "--hiermark-radius", what: "Corner radius for cards / popovers." },
 ];
 

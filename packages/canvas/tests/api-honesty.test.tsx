@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, waitFor, cleanup } from "@testing-library/react";
 import { HiermarkCanvas } from "../src/HiermarkCanvas";
-import type { HiermarkCanvasEditorDefaults, HiermarkCanvasHandle, HiermarkSurface } from "../src/types";
+import type {
+  HiermarkCanvasEditorDefaults,
+  HiermarkCanvasHandle,
+  HiermarkSurface,
+} from "../src/types";
 
 afterEach(() => cleanup());
 beforeAll(() => {

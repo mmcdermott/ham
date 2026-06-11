@@ -59,7 +59,10 @@ export type {
 export { generateBlockId, isBlockId } from "./id";
 
 // Snapshot
-export { getHiermarkSurfaceSnapshot, surfaceSnapshotFromDoc } from "./snapshot/getHiermarkSurfaceSnapshot";
+export {
+  getHiermarkSurfaceSnapshot,
+  surfaceSnapshotFromDoc,
+} from "./snapshot/getHiermarkSurfaceSnapshot";
 export type { SurfaceSnapshotOptions } from "./snapshot/getHiermarkSurfaceSnapshot";
 export { projectBlockTree, previewOf } from "./snapshot/projectBlockTree";
 export type { BlockNodeMeta, ProjectBlockTreeOptions } from "./snapshot/projectBlockTree";

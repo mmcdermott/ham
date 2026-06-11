@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { HiermarkEditor, createExampleAnnotationRegistry, type HiermarkEditorProps } from "@hiermark/editor";
+import {
+  HiermarkEditor,
+  createExampleAnnotationRegistry,
+  type HiermarkEditorProps,
+} from "@hiermark/editor";
 
 import { DemoFrame } from "./DemoFrame";
 import { annotatedMarkdown, annotationContext } from "../lib/examples";

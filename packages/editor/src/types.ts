@@ -150,7 +150,12 @@ export interface HiermarkEditorChangeEvent {
 // Annotations (spec §5.13)
 // ---------------------------------------------------------------------------
 
-export type HiermarkAnnotationPlacement = "inline" | "block-chip" | "gutter" | "popover" | "decoration";
+export type HiermarkAnnotationPlacement =
+  | "inline"
+  | "block-chip"
+  | "gutter"
+  | "popover"
+  | "decoration";
 
 export interface HiermarkAnnotationHit {
   id: string;
@@ -313,7 +318,12 @@ export interface HiermarkCollaborationRuntime {
 }
 
 /** Lifecycle of the collaboration connection (drives host spinners / analytics). */
-export type HiermarkCollaborationStatus = "connecting" | "connected" | "synced" | "timedout" | "error";
+export type HiermarkCollaborationStatus =
+  | "connecting"
+  | "connected"
+  | "synced"
+  | "timedout"
+  | "error";
 
 /** What teardown managed to do with any unsynced changes. */
 export interface HiermarkCollaborationFlushResult {

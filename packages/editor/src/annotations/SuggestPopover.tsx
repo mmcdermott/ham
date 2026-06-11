@@ -60,7 +60,9 @@ export function SuggestPopover({ state, index, editor, onHover, onSelect }: Sugg
             type="button"
             role="option"
             aria-selected={i === index}
-            className={"hiermark-suggest-item" + (i === index ? " hiermark-suggest-item-active" : "")}
+            className={
+              "hiermark-suggest-item" + (i === index ? " hiermark-suggest-item-active" : "")
+            }
             onMouseEnter={() => onHover(i)}
             // mousedown (not click) + preventDefault so the editor keeps focus
             // and the selection/range is still valid when we insert.

@@ -60,7 +60,11 @@ export interface BlockFoldOptions {
 /** Plugin key — dispatch `tr.setMeta(blockFoldKey, true)` to rebuild on fold change. */
 export const blockFoldKey = new PluginKey<DecorationSet>("hiermarkBlockFold");
 
-function foldToggle(blockId: HiermarkBlockId, collapsed: boolean, onToggle: () => void): HTMLElement {
+function foldToggle(
+  blockId: HiermarkBlockId,
+  collapsed: boolean,
+  onToggle: () => void,
+): HTMLElement {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "hiermark-fold-toggle" + (collapsed ? " hiermark-fold-collapsed" : "");

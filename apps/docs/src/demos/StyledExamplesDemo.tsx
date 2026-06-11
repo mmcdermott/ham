@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { HiermarkCanvas, type HiermarkCanvasProps, type HiermarkConnectorRenderProps } from "@hiermark/canvas";
+import {
+  HiermarkCanvas,
+  type HiermarkCanvasProps,
+  type HiermarkConnectorRenderProps,
+} from "@hiermark/canvas";
 import { createExampleAnnotationRegistry } from "@hiermark/editor";
 
 import { DemoFrame } from "./DemoFrame";

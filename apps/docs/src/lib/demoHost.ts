@@ -1,5 +1,10 @@
 import { useRef, useState } from "react";
-import type { HiermarkBranchEdge, HiermarkCanvasHandlers, HiermarkSurface, HiermarkSurfaceId } from "@hiermark/canvas";
+import type {
+  HiermarkBranchEdge,
+  HiermarkCanvasHandlers,
+  HiermarkSurface,
+  HiermarkSurfaceId,
+} from "@hiermark/canvas";
 
 let counter = 0;
 const uid = (prefix: string) => `${prefix}_${(counter++).toString(36)}`;
@@ -28,7 +33,9 @@ export interface DemoCanvas extends DemoCanvasState {
  * packages call these handlers; the host persists or rejects.
  */
 export function useDemoCanvas(initial: DemoCanvasState): DemoCanvas {
-  const [surfaces, setSurfaces] = useState<Record<HiermarkSurfaceId, HiermarkSurface>>(initial.surfaces);
+  const [surfaces, setSurfaces] = useState<Record<HiermarkSurfaceId, HiermarkSurface>>(
+    initial.surfaces,
+  );
   const [branchEdges, setEdges] = useState<HiermarkBranchEdge[]>(initial.branchEdges);
   const edgesRef = useRef(branchEdges);
   edgesRef.current = branchEdges;

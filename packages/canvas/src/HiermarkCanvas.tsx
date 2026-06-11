@@ -111,10 +111,17 @@ function DefaultGroupHeader({
 }: HiermarkGroupHeaderProps) {
   const parent = parentSurface?.title ?? parentSurfaceId;
   return (
-    <button type="button" className="hiermark-group-header" onClick={onActivateParent} title={parent}>
+    <button
+      type="button"
+      className="hiermark-group-header"
+      onClick={onActivateParent}
+      title={parent}
+    >
       <span className="hiermark-group-header-arrow">↳</span>
       <span className="hiermark-group-header-parent">{parent}</span>
-      {anchorPreview ? <span className="hiermark-group-header-anchor"> · {anchorPreview}</span> : null}
+      {anchorPreview ? (
+        <span className="hiermark-group-header-anchor"> · {anchorPreview}</span>
+      ) : null}
     </button>
   );
 }
@@ -366,7 +373,12 @@ function SurfaceItem({
       <span className="hiermark-surface-title">{surface.title ?? "Untitled"}</span>
       <span className="hiermark-surface-spacer" />
       {pending && (
-        <span className="hiermark-surface-spinner" role="status" aria-label="Saving…" title="Saving…" />
+        <span
+          className="hiermark-surface-spinner"
+          role="status"
+          aria-label="Saving…"
+          title="Saving…"
+        />
       )}
       {item.pathState !== "active" && (
         <button type="button" className="hiermark-surface-open" onClick={onActivate}>
@@ -844,19 +856,23 @@ export function HiermarkCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   // its editor asynchronously — a focus requested before the editor exists
   // parks here and lands on registration.
   const editorHandlesRef = useRef(new Map<HiermarkSurfaceId, HiermarkEditorHandle>());
-  const pendingFocusRef = useRef<{ surfaceId: HiermarkSurfaceId; blockId: HiermarkBlockId | null } | null>(
-    null,
+  const pendingFocusRef = useRef<{
+    surfaceId: HiermarkSurfaceId;
+    blockId: HiermarkBlockId | null;
+  } | null>(null);
+  const focusHandle = useCallback(
+    (handle: HiermarkEditorHandle, blockId: HiermarkBlockId | null) => {
+      if (blockId) {
+        handle.focusBlock(blockId, { scroll: true });
+        return;
+      }
+      const ed = handle.getUnsafeTiptapEditor() as {
+        commands?: { focus?: () => void };
+      } | null;
+      ed?.commands?.focus?.();
+    },
+    [],
   );
-  const focusHandle = useCallback((handle: HiermarkEditorHandle, blockId: HiermarkBlockId | null) => {
-    if (blockId) {
-      handle.focusBlock(blockId, { scroll: true });
-      return;
-    }
-    const ed = handle.getUnsafeTiptapEditor() as {
-      commands?: { focus?: () => void };
-    } | null;
-    ed?.commands?.focus?.();
-  }, []);
   const focusEditor = useCallback(
     (surfaceId: HiermarkSurfaceId, blockId: HiermarkBlockId | null) => {
       const handle = editorHandlesRef.current.get(surfaceId);

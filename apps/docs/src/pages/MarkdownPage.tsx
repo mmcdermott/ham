@@ -135,8 +135,8 @@ export function MarkdownPage() {
     <section className="page">
       <h2>Markdown &amp; rendering</h2>
       <p className="lede">
-        Each <code>@hiermark/editor</code> surface is a single markdown document (Tiptap StarterKit +
-        task lists, tables, and KaTeX math). Markdown is the import/export format; the structured
+        Each <code>@hiermark/editor</code> surface is a single markdown document (Tiptap StarterKit
+        + task lists, tables, and KaTeX math). Markdown is the import/export format; the structured
         block tree is derived by parsing and re-serialized on structured edits, and the two
         round-trip. The example below is a <strong>live editor</strong> — what you see is exactly
         what the package renders.

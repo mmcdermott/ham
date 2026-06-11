@@ -126,7 +126,9 @@ export function projectColumnsFromContext<SurfaceMeta = unknown, EdgeMeta = unkn
 
   const columns: HiermarkCanvasColumn<SurfaceMeta, EdgeMeta>[] = [];
   const visited = new Set<HiermarkSurfaceId>();
-  let current: HiermarkSurfaceId[] = input.surfaces[input.rootSurfaceId] ? [input.rootSurfaceId] : [];
+  let current: HiermarkSurfaceId[] = input.surfaces[input.rootSurfaceId]
+    ? [input.rootSurfaceId]
+    : [];
   for (const id of current) visited.add(id);
   let depth = 0;
 

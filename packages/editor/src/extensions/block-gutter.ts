@@ -8,7 +8,12 @@ import {
   computeBranchPointSet,
   isHiermarkBlockNode,
 } from "../snapshot/blockTreePolicy";
-import type { HiermarkBlockId, HiermarkBranchMode, HiermarkBranchPolicy, HiermarkSurfaceSnapshot } from "../types";
+import type {
+  HiermarkBlockId,
+  HiermarkBranchMode,
+  HiermarkBranchPolicy,
+  HiermarkSurfaceSnapshot,
+} from "../types";
 
 /** One block's gutter overlay; React renders the branch button + child chips into `container`. */
 export interface GutterEntry {

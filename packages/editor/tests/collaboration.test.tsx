@@ -26,7 +26,10 @@ function fakeRuntime(ydoc: Y.Doc): HiermarkCollaborationRuntime {
   return { ydoc, connect: async () => provider };
 }
 
-function collabConfig(ydoc: Y.Doc, runtime: HiermarkCollaborationRuntime): HiermarkCollaborationConfig {
+function collabConfig(
+  ydoc: Y.Doc,
+  runtime: HiermarkCollaborationRuntime,
+): HiermarkCollaborationConfig {
   return { enabled: true, documentName: "doc", ydoc, runtime };
 }
 

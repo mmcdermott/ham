@@ -29,7 +29,9 @@ export const defaultBehavior: HiermarkCanvasBehaviorConfig = {
   deleteSurfacePolicy: "prevent-if-has-children",
 };
 
-export function resolveLayout(partial?: Partial<HiermarkCanvasLayoutConfig>): HiermarkCanvasLayoutConfig {
+export function resolveLayout(
+  partial?: Partial<HiermarkCanvasLayoutConfig>,
+): HiermarkCanvasLayoutConfig {
   return { ...defaultLayout, ...partial };
 }
 

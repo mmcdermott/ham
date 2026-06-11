@@ -33,7 +33,9 @@ export function createTaskAnnotation(): HiermarkAnnotationType<Ctx> {
         },
       ];
     },
-    render: ({ hit }) => <span className="hiermark-annotation-chip hiermark-task-chip">✓ {hit.label}</span>,
+    render: ({ hit }) => (
+      <span className="hiermark-annotation-chip hiermark-task-chip">✓ {hit.label}</span>
+    ),
   };
 }
 
@@ -59,7 +61,9 @@ export function createCitationAnnotation(): HiermarkAnnotationType<Ctx> {
       }));
     },
     inlineClass: (hit) =>
-      (hit.data as { known?: boolean })?.known ? "hiermark-citation-known" : "hiermark-citation-unknown",
+      (hit.data as { known?: boolean })?.known
+        ? "hiermark-citation-known"
+        : "hiermark-citation-unknown",
     render: ({ hit }) => (
       <span className="hiermark-annotation-chip hiermark-citation-chip">@{hit.label}</span>
     ),
@@ -151,7 +155,8 @@ export function createUrlAnnotation(): HiermarkAnnotationType<Ctx> {
         data: { url: r.url, kind: r.kind },
       }));
     },
-    inlineClass: (hit) => `hiermark-url hiermark-url-${(hit.data as { kind?: string })?.kind ?? "url"}`,
+    inlineClass: (hit) =>
+      `hiermark-url hiermark-url-${(hit.data as { kind?: string })?.kind ?? "url"}`,
     render: ({ hit }) => (
       <a
         className="hiermark-annotation-chip hiermark-url-chip"

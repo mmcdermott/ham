@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { HiermarkEditor, createExampleAnnotationRegistry, type HiermarkEditorProps } from "@hiermark/editor";
+import {
+  HiermarkEditor,
+  createExampleAnnotationRegistry,
+  type HiermarkEditorProps,
+} from "@hiermark/editor";
 
 import { annotationContext, annotatedMarkdown } from "../lib/examples";
 
@@ -79,10 +83,10 @@ export function AnnotationsPage() {
 
       <h3>The model</h3>
       <p>
-        A <code>HiermarkAnnotationType</code> has a <code>recognize(block, text, context)</code> function
-        — pure over the block&apos;s text and a host-supplied <code>context</code> the framework
-        never interprets — returning hits with block-relative <code>from</code>/<code>to</code>{" "}
-        offsets and arbitrary <code>data</code>. A registry is just{" "}
+        A <code>HiermarkAnnotationType</code> has a <code>recognize(block, text, context)</code>{" "}
+        function — pure over the block&apos;s text and a host-supplied <code>context</code> the
+        framework never interprets — returning hits with block-relative <code>from</code>/
+        <code>to</code> offsets and arbitrary <code>data</code>. A registry is just{" "}
         <code>{`{ types: [...] }`}</code>. The bundled example registry recognizes{" "}
         <strong>tasks</strong>, <strong>@citations</strong> (resolved against a <code>.bib</code>),{" "}
         <strong>@mentions</strong> (people), and <strong>URLs</strong>. Edit the live document — the

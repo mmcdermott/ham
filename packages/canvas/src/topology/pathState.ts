@@ -29,7 +29,10 @@ function parentOf(
  * both the same parent surface *and* the same anchor block as the active surface
  * (the strict definition that also governs reorder eligibility).
  */
-export function computePathState(surfaceId: HiermarkSurfaceId, ctx: PathStateContext): HiermarkPathState {
+export function computePathState(
+  surfaceId: HiermarkSurfaceId,
+  ctx: PathStateContext,
+): HiermarkPathState {
   if (surfaceId === ctx.activeSurfaceId) return "active";
   if (ctx.activeSurfaceSet.has(surfaceId)) return "ancestor";
   if (ctx.descendantsOfActive.has(surfaceId)) return "descendant";

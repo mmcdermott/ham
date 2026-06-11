@@ -103,7 +103,10 @@ function activeBlockIdAt(state: EditorState): HiermarkBlockId | null {
  * gate (post-sync) with a `collab` binding to a shared Y.Doc.
  */
 function HiermarkEditorInner<AnnotationData = unknown>(
-  props: HiermarkEditorProps<AnnotationData> & { collab?: HiermarkCollabBinding; seedAllowed?: boolean },
+  props: HiermarkEditorProps<AnnotationData> & {
+    collab?: HiermarkCollabBinding;
+    seedAllowed?: boolean;
+  },
 ) {
   const collab = props.collab;
   const seededRef = useRef(false);
@@ -949,7 +952,9 @@ function HiermarkEditorInner<AnnotationData = unknown>(
  * would merge an empty default paragraph into the real content). Flushes and
  * destroys the provider on unmount.
  */
-function CollabHiermarkEditor<AnnotationData = unknown>(props: HiermarkEditorProps<AnnotationData>) {
+function CollabHiermarkEditor<AnnotationData = unknown>(
+  props: HiermarkEditorProps<AnnotationData>,
+) {
   const config = props.collaboration!;
   // The editor must bind to the SAME Y.Doc the transport syncs. Prefer the
   // injected runtime's doc, then config.ydoc, else create one.
@@ -1109,7 +1114,9 @@ function CollabHiermarkEditor<AnnotationData = unknown>(props: HiermarkEditorPro
  * document rooted at a stable block. Routes to the collaboration gate when
  * `collaboration.enabled`, otherwise renders the local editor directly.
  */
-export function HiermarkEditor<AnnotationData = unknown>(props: HiermarkEditorProps<AnnotationData>) {
+export function HiermarkEditor<AnnotationData = unknown>(
+  props: HiermarkEditorProps<AnnotationData>,
+) {
   if (props.collaboration?.enabled) {
     if (!props.collaboration.runtime && !props.collaboration.url) {
       devWarn(

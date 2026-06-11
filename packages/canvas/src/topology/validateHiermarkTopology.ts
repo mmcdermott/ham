@@ -1,4 +1,9 @@
-import type { HiermarkBranchEdge, HiermarkBranchEdgeId, HiermarkSurface, HiermarkSurfaceId } from "../types";
+import type {
+  HiermarkBranchEdge,
+  HiermarkBranchEdgeId,
+  HiermarkSurface,
+  HiermarkSurfaceId,
+} from "../types";
 
 export type HiermarkTopologyIssueKind =
   | "missing-root"

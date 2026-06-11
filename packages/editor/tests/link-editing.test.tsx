@@ -61,7 +61,9 @@ describe("LinkPopover", () => {
     );
     const removeBtn = document.querySelector<HTMLButtonElement>(".hiermark-link-remove")!;
     expect(removeBtn).not.toBeNull();
-    expect(document.querySelector("a.hiermark-link-btn")?.getAttribute("href")).toBe("https://x.com");
+    expect(document.querySelector("a.hiermark-link-btn")?.getAttribute("href")).toBe(
+      "https://x.com",
+    );
     fireEvent.click(removeBtn);
     expect(onRemove).toHaveBeenCalledWith(1, 5);
   });

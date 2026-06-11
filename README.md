@@ -32,8 +32,8 @@ collaboration. It is the best way to see what Hiermark is and how to use it.
 
 ## Packages
 
-| Package       | Description                                                       |
-| ------------- | ----------------------------------------------------------------- |
+| Package            | Description                                                       |
+| ------------------ | ----------------------------------------------------------------- |
 | `@hiermark/editor` | One collaborative, block-centric markdown surface (Tiptap 3).     |
 | `@hiermark/canvas` | A 2D canvas of surfaces connected by block-anchored branch edges. |
 

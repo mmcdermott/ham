@@ -1,10 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { HiermarkBlockId, HiermarkBranchRequestEvent, HiermarkSurfaceSnapshot } from "@hiermark/editor";
+import type {
+  HiermarkBlockId,
+  HiermarkBranchRequestEvent,
+  HiermarkSurfaceSnapshot,
+} from "@hiermark/editor";
 
 import { resolveBehavior, resolveLayout } from "./defaults";
 import { devWarn } from "./devWarn";
 import { getHiermarkActivePath } from "./topology/getHiermarkActivePath";
-import { buildProjectionContext, projectColumnsFromContext } from "./topology/projectHiermarkColumns";
+import {
+  buildProjectionContext,
+  projectColumnsFromContext,
+} from "./topology/projectHiermarkColumns";
 import {
   areSameAnchorSiblings,
   buildReorderEvent,
@@ -77,9 +84,9 @@ export function useHiermarkCanvas<SurfaceMeta = unknown, EdgeMeta = unknown>(
   const activeBlockId =
     props.activeBlockId !== undefined ? props.activeBlockId : internalActiveBlock;
 
-  const [snapshots, setSnapshots] = useState<Record<HiermarkSurfaceId, HiermarkSurfaceSnapshot | undefined>>(
-    {},
-  );
+  const [snapshots, setSnapshots] = useState<
+    Record<HiermarkSurfaceId, HiermarkSurfaceSnapshot | undefined>
+  >({});
   const [collapsedSurfaceIds, setCollapsed] = useState<Set<HiermarkSurfaceId>>(new Set());
   // Pending ops are COUNTED per surface (not a Set) so two overlapping ops on
   // one surface don't clear its pending state when the first settles.

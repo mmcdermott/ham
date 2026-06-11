@@ -68,7 +68,9 @@ export interface HiermarkEditorExtensionOptions {
  * placeholder, official Markdown import/export, optional math, and the stable
  * block-id extension.
  */
-export function createHiermarkEditorExtensions(opts: HiermarkEditorExtensionOptions = {}): Extensions {
+export function createHiermarkEditorExtensions(
+  opts: HiermarkEditorExtensionOptions = {},
+): Extensions {
   const {
     placeholder = "Write…",
     blockIdTypes,

@@ -55,9 +55,10 @@ const SECTIONS: Section[] = [
       <section className="page">
         <h2>The editor surface</h2>
         <p className="lede">
-          <code>@hiermark/editor</code> renders one block-centric markdown document. Every structural
-          block gets a stable id; a thin annotation layer recognizes tasks, citations, mentions, and
-          URLs; headings fold; and a branch gutter lets you spin any block into its own surface.
+          <code>@hiermark/editor</code> renders one block-centric markdown document. Every
+          structural block gets a stable id; a thin annotation layer recognizes tasks, citations,
+          mentions, and URLs; headings fold; and a branch gutter lets you spin any block into its
+          own surface.
         </p>
         <EditorDemo />
       </section>

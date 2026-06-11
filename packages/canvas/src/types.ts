@@ -230,7 +230,9 @@ export interface HiermarkCanvasHandlers<SurfaceMeta = unknown, EdgeMeta = unknow
   createSiblingSurface?(
     event: HiermarkCreateSiblingSurfaceEvent,
   ): Promise<HiermarkCreateSurfaceResult<SurfaceMeta, EdgeMeta>>;
-  reorderBranchSiblings?(event: HiermarkReorderBranchSiblingsEvent): Promise<HiermarkBranchEdge<EdgeMeta>[]>;
+  reorderBranchSiblings?(
+    event: HiermarkReorderBranchSiblingsEvent,
+  ): Promise<HiermarkBranchEdge<EdgeMeta>[]>;
   deleteSurface?(event: HiermarkDeleteSurfaceEvent): Promise<void>;
   saveSurface?(event: HiermarkEditorSavePayload): Promise<void>;
   updateSurfaceSnapshot?(event: {
@@ -437,7 +439,10 @@ export interface HiermarkCanvasProps<SurfaceMeta = unknown, EdgeMeta = unknown> 
   className?: string;
 
   onReady?: (handle: HiermarkCanvasHandle) => void;
-  onActiveChange?: (active: { surfaceId: HiermarkSurfaceId; blockId?: HiermarkBlockId | null }) => void;
+  onActiveChange?: (active: {
+    surfaceId: HiermarkSurfaceId;
+    blockId?: HiermarkBlockId | null;
+  }) => void;
   /**
    * Called when a topology/save operation is rejected by a host handler, or
    * refused package-side (e.g. a delete blocked by `deleteSurfacePolicy`).

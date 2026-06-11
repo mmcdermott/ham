@@ -36,7 +36,9 @@ describe("code blocks (lowlight + chrome)", () => {
     });
     // The language picker reflects the fence language and the wrapper carries the
     // block id (so the canvas connectors can still anchor a code block).
-    expect((container.querySelector(".hiermark-code-lang") as HTMLSelectElement).value).toBe("python");
+    expect((container.querySelector(".hiermark-code-lang") as HTMLSelectElement).value).toBe(
+      "python",
+    );
     expect(container.querySelector(".hiermark-code-block")?.getAttribute("data-block-id")).toMatch(
       /^blk_/,
     );

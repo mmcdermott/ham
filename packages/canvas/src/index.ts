@@ -16,12 +16,18 @@ export {
   buildProjectionContext,
   projectColumnsFromContext,
 } from "./topology/projectHiermarkColumns";
-export type { HiermarkProjectionContext, HiermarkProjectionContextInput } from "./topology/projectHiermarkColumns";
+export type {
+  HiermarkProjectionContext,
+  HiermarkProjectionContextInput,
+} from "./topology/projectHiermarkColumns";
 export { getHiermarkActivePath } from "./topology/getHiermarkActivePath";
 export { buildIndices, collectDescendants } from "./topology/buildIndices";
 export type { HiermarkTopologyIndices } from "./topology/buildIndices";
 export { validateHiermarkTopology } from "./topology/validateHiermarkTopology";
-export type { HiermarkTopologyIssue, HiermarkTopologyIssueKind } from "./topology/validateHiermarkTopology";
+export type {
+  HiermarkTopologyIssue,
+  HiermarkTopologyIssueKind,
+} from "./topology/validateHiermarkTopology";
 export { computePathState, pickDisplayMode, buildPathStateContext } from "./topology/pathState";
 export type { PathStateContext } from "./topology/pathState";
 export {
@@ -34,7 +40,10 @@ export {
 export { defaultLayout, defaultBehavior, resolveLayout, resolveBehavior } from "./defaults";
 
 // Connectors (cross-column edge overlay)
-export { HiermarkConnectorsOverlay, DefaultConnector } from "./connectors/HiermarkConnectorsOverlay";
+export {
+  HiermarkConnectorsOverlay,
+  DefaultConnector,
+} from "./connectors/HiermarkConnectorsOverlay";
 export { visibleEdges, connectorState, geometryFor } from "./connectors/connectors";
 export type { EdgeGeometry, HiermarkHoverTarget } from "./connectors/connectors";
 

@@ -1,5 +1,10 @@
 import { inferBlockContainment } from "../markdown/containment";
-import type { HiermarkBlockId, HiermarkBlockSnapshot, HiermarkSurfaceId, HiermarkSurfaceSnapshot } from "../types";
+import type {
+  HiermarkBlockId,
+  HiermarkBlockSnapshot,
+  HiermarkSurfaceId,
+  HiermarkSurfaceSnapshot,
+} from "../types";
 
 /**
  * One structural block node, as observed in document order. This is the pure

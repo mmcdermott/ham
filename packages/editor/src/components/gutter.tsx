@@ -44,7 +44,9 @@ export function DefaultBranchChildChip({ child, onOpen }: HiermarkBranchChildChi
   return (
     <button
       type="button"
-      className={"hiermark-branch-child-chip" + (child.active ? " hiermark-branch-child-chip-active" : "")}
+      className={
+        "hiermark-branch-child-chip" + (child.active ? " hiermark-branch-child-chip-active" : "")
+      }
       // Lets the canvas connectors anchor an edge to this chip (the "bubble"
       // around the child's name) rather than the block's far right edge.
       data-hiermark-branch-child={child.surfaceId}

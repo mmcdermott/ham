@@ -247,7 +247,10 @@ function branchableByRules(
 }
 
 /** Whether the block's parent is itself a non-root single-child container. */
-function hasSingleChildParent(block: HiermarkBlockSnapshot, snapshot: HiermarkSurfaceSnapshot): boolean {
+function hasSingleChildParent(
+  block: HiermarkBlockSnapshot,
+  snapshot: HiermarkSurfaceSnapshot,
+): boolean {
   const parent = block.parentId ? snapshot.blocks[block.parentId] : undefined;
   return !!parent && parent.id !== snapshot.rootBlockId && parent.childIds.length === 1;
 }

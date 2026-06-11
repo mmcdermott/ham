@@ -5,7 +5,9 @@ import { createExampleAnnotationRegistry } from "../src/annotations/recognizers"
 import { annotationId } from "../src/annotations/identity";
 import type { HiermarkAnnotationHit, HiermarkBlockSnapshot } from "../src/types";
 
-function hit(p: Partial<HiermarkAnnotationHit> & { id: string; type: string }): HiermarkAnnotationHit {
+function hit(
+  p: Partial<HiermarkAnnotationHit> & { id: string; type: string },
+): HiermarkAnnotationHit {
   return { blockId: "b1", ...p };
 }
 

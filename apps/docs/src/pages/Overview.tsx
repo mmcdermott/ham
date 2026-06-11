@@ -3,11 +3,11 @@ export function Overview() {
     <section className="page">
       <h2>What is Hiermark?</h2>
       <p className="lede">
-        <strong>Hiermark</strong> is two React + TypeScript packages
-        for building a <strong>2D canvas of linked, editable markdown surfaces</strong>. Any block
-        inside a surface — a paragraph, heading, or checklist item — can be <em>branched</em> into a
-        child surface that elaborates it. Child surfaces lay out in the next column to the right,
-        forming a navigable breadth × depth canvas.
+        <strong>Hiermark</strong> is two React + TypeScript packages for building a{" "}
+        <strong>2D canvas of linked, editable markdown surfaces</strong>. Any block inside a surface
+        — a paragraph, heading, or checklist item — can be <em>branched</em> into a child surface
+        that elaborates it. Child surfaces lay out in the next column to the right, forming a
+        navigable breadth × depth canvas.
       </p>
 
       <div className="cards">
