@@ -43,7 +43,7 @@
     "@types/node": "^22",
     "axe-core": "^4.12.1",
     "eslint": "^9",
-    "eslint-plugin-react-hooks": "^5",
+    "eslint-plugin-react-hooks": "^7",
     "globals": "^16",
     "prettier": "^3",
     "publint": "^0.3",
