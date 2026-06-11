@@ -9,7 +9,7 @@ source mode. Pairs with [`@hiermark/canvas`](https://www.npmjs.com/package/@hier
 pnpm add @hiermark/editor react react-dom
 ```
 
-> **ESM + CJS.** Ships dual builds; React 19 is a peer dependency.
+> **ESM + CJS.** Ships dual builds; React 18.3+ or 19 is a peer dependency.
 
 ```tsx
 import { HiermarkEditor } from "@hiermark/editor";
