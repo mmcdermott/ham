@@ -44,7 +44,7 @@
     "axe-core": "^4.12.1",
     "eslint": "^9",
     "eslint-plugin-react-hooks": "^5",
-    "globals": "^16",
+    "globals": "^17",
     "prettier": "^3",
     "publint": "^0.3",
     "size-limit": "^12.1.0",
