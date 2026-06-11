@@ -10,6 +10,5 @@ export function devWarn(key: string, message: string): void {
   if (typeof process !== "undefined" && process.env?.NODE_ENV === "production") return;
   if (seen.has(key)) return;
   seen.add(key);
-
-  console.warn(`[@ham/editor] ${message}`);
+  console.warn(`[@hiermark/editor] ${message}`);
 }

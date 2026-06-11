@@ -11,6 +11,10 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  # OIDC: lets npm mint a short-lived token via trusted publishing (no
+  # NPM_TOKEN secret) and auto-attach provenance. Requires a trusted publisher
+  # configured for each package on npmjs.com pointing at this repo + workflow.
+  id-token: write
 
 jobs:
   release:
@@ -23,7 +27,14 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
       - run: pnpm install --frozen-lockfile
+      # OIDC trusted publishing needs npm CLI >= 11.5.1 (Node 22.x already
+      # satisfies the >= 22.14.0 requirement). changeset publish shells out to
+      # this npm, so upgrading it here is what makes OIDC work — pnpm's own
+      # publish does not support OIDC yet.
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
       # Gate releases on the build + test suite: a broken main can still open a
       # Version Packages PR, but it can never tag a release.
       - name: Build packages
@@ -36,11 +47,15 @@ jobs:
           # `pnpm run` is required — bare `pnpm version` is an npm passthrough
           # that prints the version table and never executes the script.
           version: pnpm run version-packages
-          # Tag-only releases: `changeset tag` prints "New tag: …" lines that
-          # the action turns into git tags + GitHub Releases (changelog bodies).
-          # To publish to npm later: claim the scope, add an NPM_TOKEN secret,
-          # restore setup-node's registry-url + NODE_AUTH_TOKEN, and switch
-          # this to `publish: pnpm release`.
-          publish: pnpm changeset tag
+          # Releases stay tag-only (`changeset tag` → git tags + GitHub
+          # Releases, no npm) until npm publishing is armed by setting the repo
+          # variable NPM_PUBLISH=true. Arm it only AFTER the one-time npm setup
+          # (create the `hiermark` org + a trusted publisher per package on
+          # npmjs.com); flipping it switches to `pnpm release`, which runs
+          # `changeset publish` to publish every not-yet-published version via
+          # OIDC trusted publishing (no NPM_TOKEN; provenance is automatic).
+          # This keeps `main` green before the org exists instead of failing an
+          # unauthorized publish on the first push.
+          publish: ${{ vars.NPM_PUBLISH == 'true' && 'pnpm release' || 'pnpm changeset tag' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

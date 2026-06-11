@@ -22,7 +22,7 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
-  { id: "overview", label: "What is HAM?", group: "Guide", render: () => <Overview /> },
+  { id: "overview", label: "What is Hiermark?", group: "Guide", render: () => <Overview /> },
   {
     id: "getting-started",
     label: "Getting started",
@@ -55,9 +55,10 @@ const SECTIONS: Section[] = [
       <section className="page">
         <h2>The editor surface</h2>
         <p className="lede">
-          <code>@ham/editor</code> renders one block-centric markdown document. Every structural
-          block gets a stable id; a thin annotation layer recognizes tasks, citations, mentions, and
-          URLs; headings fold; and a branch gutter lets you spin any block into its own surface.
+          <code>@hiermark/editor</code> renders one block-centric markdown document. Every
+          structural block gets a stable id; a thin annotation layer recognizes tasks, citations,
+          mentions, and URLs; headings fold; and a branch gutter lets you spin any block into its
+          own surface.
         </p>
         <EditorDemo />
       </section>
@@ -225,8 +226,8 @@ export function App() {
         <a className="brand" href="#overview">
           <span className="brand-mark">▦</span>
           <span>
-            HAM
-            <small>Hierarchical, Annotatable Markdown</small>
+            Hiermark
+            <small>hierarchical, annotatable markdown</small>
           </span>
         </a>
         <nav aria-label="Primary">
@@ -248,7 +249,7 @@ export function App() {
         </nav>
         <a
           className="repo-link"
-          href="https://github.com/mmcdermott/ham"
+          href="https://github.com/mmcdermott/hiermark"
           target="_blank"
           rel="noreferrer"
         >

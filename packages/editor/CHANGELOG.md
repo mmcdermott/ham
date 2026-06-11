@@ -1,4 +1,4 @@
-# @ham/editor
+# @hiermark/editor
 
 ## 0.3.0
 
@@ -7,33 +7,33 @@
 - 0b7ea74: API honesty: every declared prop now does what it says, and dead surface is
   gone (breaking for code that referenced it).
 
-  `@ham/editor`:
+  `@hiermark/editor`:
   - `autofocus` implements its full contract — `"start"` / `"end"` map to
     Tiptap, and a block id places the caret inside that block after mount
     (unknown ids fail gracefully). Previously every non-boolean coerced to
     `false`.
   - `highlightedBlockIds` is implemented: listed blocks get the
-    `ham-block-highlighted` class (themable via `--ham-highlight-bg`), updating
+    `hiermark-block-highlighted` class (themable via `--hiermark-highlight-bg`), updating
     in place on prop change.
-  - `HamCollaborationConfig` is now a discriminated union: pass
+  - `HiermarkCollaborationConfig` is now a discriminated union: pass
     `provider: "hocuspocus"` + `url`, or a custom `runtime` — no more fake
     transport fields to satisfy the type. (`createHocuspocusCollab` now takes
-    `HamCollaborationHocuspocusConfig`.)
-  - Removed (never implemented): `onBlockEvents` + `HamBlockEvent` types, the
-    `EmptyState` / `BlockGutter` editor slots, `HamBranchRequestEvent.nativeEvent`,
-    and `HamEditorSavePayload.revision`.
+    `HiermarkCollaborationHocuspocusConfig`.)
+  - Removed (never implemented): `onBlockEvents` + `HiermarkBlockEvent` types, the
+    `EmptyState` / `BlockGutter` editor slots, `HiermarkBranchRequestEvent.nativeEvent`,
+    and `HiermarkEditorSavePayload.revision`.
 
-  `@ham/canvas`:
+  `@hiermark/canvas`:
   - `handlers.createSurfaceFromBlock` is optional: a read-only / preview canvas
     mounts with no dummy handler; missing-handler branch requests dev-warn, and
     affordances are hidden unless the handler exists.
-  - `editorDefaults` is now the curated `HamCanvasEditorDefaults` (canvas-owned
+  - `editorDefaults` is now the curated `HiermarkCanvasEditorDefaults` (canvas-owned
     props like `value` / `onChange` / `onReady` are rejected at the type level
     instead of being silently overridden).
-  - `HamCanvasHandle.focusBlock` actually moves the caret into the requested
+  - `HiermarkCanvasHandle.focusBlock` actually moves the caret into the requested
     block (parking the focus until the surface's editor mounts, if needed).
   - Removed (never implemented): `behavior.pendingOperationMode` and
-    `HamCreateSurfaceFromBlockEvent.insertAfterEdgeId`.
+    `HiermarkCreateSurfaceFromBlockEvent.insertAfterEdgeId`.
 
 - b82be24: URI sanitizer hardening: the link/image policy is now a normalization-first
   ALLOWLIST instead of a scheme denylist. Hrefs allow http/https/mailto plus
@@ -85,10 +85,10 @@
   - `reorderSiblings` resolves `true`/`false` for success/failure, and the
     reorder undo/redo stacks only commit their bookkeeping on success — a
     rejected handler no longer desynchronizes undo history.
-  - `validateHamTopology` reports a new `duplicate-sibling-order` issue;
+  - `validateHiermarkTopology` reports a new `duplicate-sibling-order` issue;
     add-sibling inserters are keyed by visual gap (duplicate orders no longer
     drop an inserter); `revealBranchFromBlock`'s parameter is typed
-    `HamBlockId`.
+    `HiermarkBlockId`.
   - The active block id is passed only to the active surface's editor (block
     ids are surface-scoped; a colliding id in another expanded surface no longer
     lights up as active).
@@ -149,30 +149,30 @@
 - d76bcf7: Add an image alt-text / title editor. Clicking any image opens a popover
   (`ImageEditor` extension + `ImagePopover`) to edit its alt text
   (accessibility-critical) and title, written back to the node attrs and to
-  `![alt](src "title")` markdown. Wired by default in `HamEditor`.
+  `![alt](src "title")` markdown. Wired by default in `HiermarkEditor`.
 - 6f24247: Toward v1.0: editor gains click-to-edit math, inline link editing, code-block
   soft-wrap, IME guards, an XSS sanitizer, source-mode id preservation, and
   collaboration retry/status callbacks; canvas gains a bubble-up branch policy,
   compact-card sizing, two-way hover connectors, scroll-to-reveal, SurfaceBody /
   EmptyCanvas slots, reduced-motion, and ARIA tree semantics. Both packages now
   ship dual ESM + CJS builds with `publishConfig`/provenance.
-- b96afc4: Add a pure `@ham/editor/markdown` subpath export for server-side consumers
+- b96afc4: Add a pure `@hiermark/editor/markdown` subpath export for server-side consumers
   (issue #50). The markdown grammar helpers — `stripStableIds`, `readStableId`,
   `injectInlineId`, `inferContainmentFromMarkdown`, `parseChecklist`,
   `extractCitationKeys`, `extractResourceLinks`, `fnv1a64Hex`, and friends — are
   import-pure (no React, Tiptap, or DOM), so a host app's save-time reconciler,
   collab worker, or git-sync CLI can now `import { parseChecklist } from
-"@ham/editor/markdown"` without dragging the browser editor into its module
-  graph. The package root (`@ham/editor`) re-exports the same module, so the
+"@hiermark/editor/markdown"` without dragging the browser editor into its module
+  graph. The package root (`@hiermark/editor`) re-exports the same module, so the
   client editor and the server share one grammar implementation — avoiding the
   definition drift that would otherwise be a silent data-loss bug. No runtime or
   API change to existing root-barrel imports.
 
 ### Patch Changes
 
-- 357328b: Packaging fixes: `@ham/editor`'s exports map no longer carries redundant
+- 357328b: Packaging fixes: `@hiermark/editor`'s exports map no longer carries redundant
   top-level `types` keys that resolved ESM-flavored declarations under the
   `require` condition (CJS TypeScript consumers now get `index.d.cts`), and
-  `@ham/canvas` declares its `@ham/editor` peer as an explicit `>=0.1.0 <1.0.0`
+  `@hiermark/canvas` declares its `@hiermark/editor` peer as an explicit `>=0.1.0 <1.0.0`
   range instead of `workspace:^` (which made changesets major-bump the canvas on
   every editor minor).
