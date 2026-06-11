@@ -36,32 +36,32 @@ import {
 } from "./extensions/block-gutter";
 import { BlockGutterAffordances } from "./components/gutter";
 import {
-  createHamEditorExtensions,
-  type HamCollabBinding,
-} from "./extensions/createHamEditorExtensions";
-import { uploadHamImages, type ImageUploadContext } from "./extensions/image-upload";
+  createHiermarkEditorExtensions,
+  type HiermarkCollabBinding,
+} from "./extensions/createHiermarkEditorExtensions";
+import { uploadHiermarkImages, type ImageUploadContext } from "./extensions/image-upload";
 import { isSafeUri } from "./extensions/sanitize";
 import { stripStableIds } from "./markdown/stable-id";
-import { surfaceSnapshotFromDoc } from "./snapshot/getHamSurfaceSnapshot";
+import { surfaceSnapshotFromDoc } from "./snapshot/getHiermarkSurfaceSnapshot";
 import { collectBlockIdentities, planBlockIdRestore } from "./snapshot/blockIdentity";
 import { devWarn } from "./devWarn";
 import type {
-  HamAnnotationSuggestion,
-  HamBlockId,
-  HamBranchChildSummary,
-  HamBranchMode,
-  HamBranchRequestEvent,
-  HamCollaborationProvider,
-  HamCollaborationStatus,
-  HamCollaborationUser,
-  HamEditorHandle,
-  HamEditorMode,
-  HamEditorProps,
-  HamEditorSavePayload,
-  HamSurfaceSnapshot,
+  HiermarkAnnotationSuggestion,
+  HiermarkBlockId,
+  HiermarkBranchChildSummary,
+  HiermarkBranchMode,
+  HiermarkBranchRequestEvent,
+  HiermarkCollaborationProvider,
+  HiermarkCollaborationStatus,
+  HiermarkCollaborationUser,
+  HiermarkEditorHandle,
+  HiermarkEditorMode,
+  HiermarkEditorProps,
+  HiermarkEditorSavePayload,
+  HiermarkSurfaceSnapshot,
 } from "./types";
 
-function findBlockPos(doc: Editor["state"]["doc"], blockId: HamBlockId): number | null {
+function findBlockPos(doc: Editor["state"]["doc"], blockId: HiermarkBlockId): number | null {
   let found: number | null = null;
   doc.descendants((node, pos) => {
     if (found != null) return false;
@@ -89,7 +89,7 @@ function randomCaretColor(): string {
   return CARET_COLORS[Math.floor(Math.random() * CARET_COLORS.length)]!;
 }
 
-function activeBlockIdAt(state: EditorState): HamBlockId | null {
+function activeBlockIdAt(state: EditorState): HiermarkBlockId | null {
   const $head = state.selection.$head;
   for (let d = $head.depth; d > 0; d--) {
     const id = $head.node(d).attrs?.dataBlockId as string | null;
@@ -102,14 +102,17 @@ function activeBlockIdAt(state: EditorState): HamBlockId | null {
  * The editor view itself. Mounted directly for local editing, or by the collab
  * gate (post-sync) with a `collab` binding to a shared Y.Doc.
  */
-function HamEditorInner<AnnotationData = unknown>(
-  props: HamEditorProps<AnnotationData> & { collab?: HamCollabBinding; seedAllowed?: boolean },
+function HiermarkEditorInner<AnnotationData = unknown>(
+  props: HiermarkEditorProps<AnnotationData> & {
+    collab?: HiermarkCollabBinding;
+    seedAllowed?: boolean;
+  },
 ) {
   const collab = props.collab;
   const seededRef = useRef(false);
 
   // View-only fold state, seeded from collapsedBlockIds (spec §2.4, §8 fold).
-  const [foldedSet, setFoldedSet] = useState<Set<HamBlockId>>(
+  const [foldedSet, setFoldedSet] = useState<Set<HiermarkBlockId>>(
     () => new Set(props.collapsedBlockIds ?? []),
   );
   const foldRef = useRef<BlockFoldContext | null>(null);
@@ -164,9 +167,9 @@ function HamEditorInner<AnnotationData = unknown>(
   // Source mode is unavailable under collaboration (a full re-parse would
   // clobber the shared Y.Doc).
   const sourceAvailable = !collab;
-  const [editorMode, setEditorMode] = useState<HamEditorMode>("rich");
+  const [editorMode, setEditorMode] = useState<HiermarkEditorMode>("rich");
   const [sourceText, setSourceText] = useState("");
-  const modeRef = useRef<HamEditorMode>("rich");
+  const modeRef = useRef<HiermarkEditorMode>("rich");
   modeRef.current = editorMode;
   const sourceTextRef = useRef("");
   // Markdown captured when source mode opened — lets us skip the re-parse (and
@@ -180,14 +183,14 @@ function HamEditorInner<AnnotationData = unknown>(
   onSnapshotChangeRef.current = onSnapshotChange;
   // setMode is invoked from the imperative handle (captured once); route through
   // a ref so it always runs the latest closure (current editor, source text).
-  const applyModeRef = useRef<(next: HamEditorMode) => void>(() => {});
+  const applyModeRef = useRef<(next: HiermarkEditorMode) => void>(() => {});
 
   // The gutter reads its data/handlers through a stable getter (never a cloned
   // ref object — Tiptap deep-clones extension options).
   const ctxRef = useRef<BlockGutterContext | null>(null);
   const [gutterEntries, setGutterEntries] = useState<GutterEntry[]>([]);
   const annoCtxRef = useRef<AnnotationLayerContext | null>(null);
-  const lastActiveBlock = useRef<HamBlockId | null>(null);
+  const lastActiveBlock = useRef<HiermarkBlockId | null>(null);
   // Read the latest onReady via a ref so the handle is published exactly once
   // per editor — a new onReady closure each render must not re-fire it.
   const onReadyRef = useRef(onReady);
@@ -219,7 +222,7 @@ function HamEditorInner<AnnotationData = unknown>(
   // the annotation layer each project independently); memoizing by doc identity
   // (PM docs are immutable, so same ref ⇒ same content) collapses that to a
   // single walk per doc — and plain typing produces exactly one doc per stroke.
-  const snapshotCacheRef = useRef<{ doc: PMNode; snap: HamSurfaceSnapshot } | null>(null);
+  const snapshotCacheRef = useRef<{ doc: PMNode; snap: HiermarkSurfaceSnapshot } | null>(null);
   // The cache key is the doc, but the snapshot also bakes in surfaceId /
   // rootBlockId / title — drop the cache when those change so a re-titled or
   // re-identified surface can't serve a stale snapshot for an unchanged doc.
@@ -227,7 +230,7 @@ function HamEditorInner<AnnotationData = unknown>(
     snapshotCacheRef.current = null;
   }, [surfaceId, rootBlockId, title]);
   const computeSnapshot = useCallback(
-    (doc: PMNode): HamSurfaceSnapshot => {
+    (doc: PMNode): HiermarkSurfaceSnapshot => {
       const cached = snapshotCacheRef.current;
       if (cached && cached.doc === doc) return cached.snap;
       const snap = surfaceSnapshotFromDoc(doc, {
@@ -242,21 +245,21 @@ function HamEditorInner<AnnotationData = unknown>(
   );
 
   const snapshotOf = useCallback(
-    (editor: Editor): HamSurfaceSnapshot => computeSnapshot(editor.state.doc),
+    (editor: Editor): HiermarkSurfaceSnapshot => computeSnapshot(editor.state.doc),
     [computeSnapshot],
   );
 
   // Branch-edge count per block, so the gutter knows when to switch a block's
   // `+` to an "add sibling" affordance (mode `add-sibling`).
   const branchChildCounts = useMemo(() => {
-    const counts: Record<HamBlockId, number> = {};
+    const counts: Record<HiermarkBlockId, number> = {};
     const map = props.branchChildren;
     if (map) for (const blockId in map) counts[blockId] = map[blockId]?.length ?? 0;
     return counts;
   }, [props.branchChildren]);
 
   const buildSavePayload = useCallback(
-    (editor: Editor): HamEditorSavePayload => ({
+    (editor: Editor): HiermarkEditorSavePayload => ({
       surfaceId,
       content: { tiptapJson: editor.getJSON(), markdown: editor.getMarkdown() },
       snapshot: snapshotOf(editor),
@@ -266,7 +269,7 @@ function HamEditorInner<AnnotationData = unknown>(
 
   const extensions = useMemo(
     () => [
-      ...createHamEditorExtensions({
+      ...createHiermarkEditorExtensions({
         ...(collab ? { collab } : {}),
         imageUpload: { getContext: () => imageUploadRef.current },
         linkEditor: { getContext: () => linkEditCtxRef.current },
@@ -342,7 +345,7 @@ function HamEditorInner<AnnotationData = unknown>(
       // The initial block-id stamp is mount mechanics, not a user edit: hosts
       // (e.g. the canvas autosave) must not see a change event for it. The
       // snapshot below still refreshes, so id consumers stay correct.
-      if (transaction.getMeta("hamInitialBlockIdStamp") !== true) {
+      if (transaction.getMeta("hiermarkInitialBlockIdStamp") !== true) {
         onChange?.({
           surfaceId,
           content: { kind: "tiptap-json", json: editor.getJSON() },
@@ -487,7 +490,7 @@ function HamEditorInner<AnnotationData = unknown>(
 
   // Switch the edit surface. To source: snapshot the current markdown into the
   // textarea. To rich: commit the (possibly edited) markdown.
-  applyModeRef.current = (next: HamEditorMode) => {
+  applyModeRef.current = (next: HiermarkEditorMode) => {
     if (next === modeRef.current) return;
     if (next === "source") {
       if (!sourceAvailable || !editor) return;
@@ -509,12 +512,12 @@ function HamEditorInner<AnnotationData = unknown>(
 
   // Branch handler: capture the snapshot synchronously (spec §5.7), then emit.
   const handleBranch = useCallback(
-    (blockId: HamBlockId, mode: HamBranchMode = "branch") => {
+    (blockId: HiermarkBlockId, mode: HiermarkBranchMode = "branch") => {
       if (!editor) return;
       const surfaceSnapshot = snapshotOf(editor);
       const blockSnapshot = surfaceSnapshot.blocks[blockId];
       if (!blockSnapshot) return;
-      const event: HamBranchRequestEvent = {
+      const event: HiermarkBranchRequestEvent = {
         surfaceId,
         blockId,
         blockSnapshot,
@@ -532,7 +535,7 @@ function HamEditorInner<AnnotationData = unknown>(
   );
 
   const handleOpenChild = useCallback(
-    (child: HamBranchChildSummary, blockId: HamBlockId) => {
+    (child: HiermarkBranchChildSummary, blockId: HiermarkBlockId) => {
       onOpenBranchChild?.({
         surfaceId,
         blockId,
@@ -543,7 +546,7 @@ function HamEditorInner<AnnotationData = unknown>(
     [surfaceId, onOpenBranchChild],
   );
 
-  const toggleFold = useCallback((blockId: HamBlockId) => {
+  const toggleFold = useCallback((blockId: HiermarkBlockId) => {
     setFoldedSet((prev) => {
       const next = new Set(prev);
       if (next.has(blockId)) next.delete(blockId);
@@ -629,7 +632,7 @@ function HamEditorInner<AnnotationData = unknown>(
   // range is read from the live plugin state — never a captured (possibly stale)
   // React value.
   const commitSuggestion = useCallback(
-    (item: HamAnnotationSuggestion) => {
+    (item: HiermarkAnnotationSuggestion) => {
       if (!editor) return;
       const range = annotationSuggestKey.getState(editor.state)?.suggest.range;
       if (!range) return;
@@ -699,7 +702,7 @@ function HamEditorInner<AnnotationData = unknown>(
   // Build and publish the imperative handle once the editor exists.
   useEffect(() => {
     if (!editor || !onReadyRef.current) return;
-    const handle: HamEditorHandle = {
+    const handle: HiermarkEditorHandle = {
       surfaceId,
       focusBlock(blockId, opts) {
         const pos = findBlockPos(editor.state.doc, blockId);
@@ -742,7 +745,7 @@ function HamEditorInner<AnnotationData = unknown>(
           editor.commands.setContent(content.json as object, { emitUpdate });
         }
       },
-      uploadImages: (files) => uploadHamImages(editor.view, imageUploadRef.current, files),
+      uploadImages: (files) => uploadHiermarkImages(editor.view, imageUploadRef.current, files),
       getMode: () => modeRef.current,
       setMode: (next) => applyModeRef.current(next),
       collapseBlock(blockId) {
@@ -858,7 +861,7 @@ function HamEditorInner<AnnotationData = unknown>(
 
   return (
     <div
-      className={["ham-editor", className, inSource ? "ham-editor-source" : null]
+      className={["hiermark-editor", className, inSource ? "hiermark-editor-source" : null]
         .filter(Boolean)
         .join(" ")}
       data-surface-id={surfaceId}
@@ -871,7 +874,7 @@ function HamEditorInner<AnnotationData = unknown>(
       </div>
       {inSource && (
         <textarea
-          className="ham-source-editor"
+          className="hiermark-source-editor"
           aria-label="Markdown source"
           spellCheck={false}
           readOnly={!editable}
@@ -949,7 +952,9 @@ function HamEditorInner<AnnotationData = unknown>(
  * would merge an empty default paragraph into the real content). Flushes and
  * destroys the provider on unmount.
  */
-function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<AnnotationData>) {
+function CollabHiermarkEditor<AnnotationData = unknown>(
+  props: HiermarkEditorProps<AnnotationData>,
+) {
   const config = props.collaboration!;
   // The editor must bind to the SAME Y.Doc the transport syncs. Prefer the
   // injected runtime's doc, then config.ydoc, else create one.
@@ -966,7 +971,7 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
     [ydoc],
   );
 
-  const [provider, setProvider] = useState<HamCollaborationProvider | null>(null);
+  const [provider, setProvider] = useState<HiermarkCollaborationProvider | null>(null);
   // `synced` is a *real* sync (safe to seed); `timedOut` only unblocks mounting.
   const [synced, setSynced] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
@@ -979,11 +984,11 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
 
   useEffect(() => {
     let cancelled = false;
-    let created: HamCollaborationProvider | null = null;
+    let created: HiermarkCollaborationProvider | null = null;
     let onSynced: (() => void) | null = null;
     let onUnsynced: ((e: { number: number }) => void) | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const setStatus = (s: HamCollaborationStatus) => cbRef.current.onStatusChange?.(s);
+    const setStatus = (s: HiermarkCollaborationStatus) => cbRef.current.onStatusChange?.(s);
     const BACKOFF = [1000, 2000, 4000];
     const maxRetries = config.maxRetries ?? 3;
 
@@ -1059,7 +1064,7 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
   // Always give the caret a name + color so remote cursors are visible by
   // default (CollaborationCaret needs a user to render a labeled caret) — the
   // host's user wins; otherwise we pick a stable random color for this session.
-  const user = useMemo<HamCollaborationUser>(
+  const user = useMemo<HiermarkCollaborationUser>(
     () => ({
       name: config.user?.name ?? "Anonymous",
       color: config.user?.color ?? randomCaretColor(),
@@ -1067,7 +1072,7 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
     [config.user?.name, config.user?.color],
   );
   // Stable collab binding so the inner editor's effects don't churn on identity.
-  const collab = useMemo<HamCollabBinding | null>(
+  const collab = useMemo<HiermarkCollabBinding | null>(
     () => (provider ? { ydoc, provider, user } : null),
     [ydoc, provider, user],
   );
@@ -1083,9 +1088,9 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
     return ErrorState ? (
       <ErrorState surfaceId={props.surfaceId} error={new Error(error)} retry={retry} />
     ) : (
-      <div className="ham-editor ham-editor-error" data-surface-id={props.surfaceId}>
+      <div className="hiermark-editor hiermark-editor-error" data-surface-id={props.surfaceId}>
         <span>Collaboration error: {error}</span>{" "}
-        <button type="button" className="ham-collab-retry" onClick={retry}>
+        <button type="button" className="hiermark-collab-retry" onClick={retry}>
           Retry
         </button>
       </div>
@@ -1096,12 +1101,12 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
     return LoadingState ? (
       <LoadingState surfaceId={props.surfaceId} />
     ) : (
-      <div className="ham-editor ham-editor-loading" data-surface-id={props.surfaceId}>
+      <div className="hiermark-editor hiermark-editor-loading" data-surface-id={props.surfaceId}>
         Connecting…
       </div>
     );
   }
-  return <HamEditorInner {...props} collab={collab} seedAllowed={synced} />;
+  return <HiermarkEditorInner {...props} collab={collab} seedAllowed={synced} />;
 }
 
 /**
@@ -1109,7 +1114,9 @@ function CollabHamEditor<AnnotationData = unknown>(props: HamEditorProps<Annotat
  * document rooted at a stable block. Routes to the collaboration gate when
  * `collaboration.enabled`, otherwise renders the local editor directly.
  */
-export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<AnnotationData>) {
+export function HiermarkEditor<AnnotationData = unknown>(
+  props: HiermarkEditorProps<AnnotationData>,
+) {
   if (props.collaboration?.enabled) {
     if (!props.collaboration.runtime && !props.collaboration.url) {
       devWarn(
@@ -1117,7 +1124,7 @@ export function HamEditor<AnnotationData = unknown>(props: HamEditorProps<Annota
         "collaboration.enabled is true but neither `url` nor a custom `runtime` is set — the editor can't connect.",
       );
     }
-    return <CollabHamEditor {...props} />;
+    return <CollabHiermarkEditor {...props} />;
   }
-  return <HamEditorInner {...props} />;
+  return <HiermarkEditorInner {...props} />;
 }

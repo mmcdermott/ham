@@ -1,4 +1,4 @@
-# @ham/canvas
+# @hiermark/canvas
 
 ## 0.3.0
 
@@ -7,33 +7,33 @@
 - 0b7ea74: API honesty: every declared prop now does what it says, and dead surface is
   gone (breaking for code that referenced it).
 
-  `@ham/editor`:
+  `@hiermark/editor`:
   - `autofocus` implements its full contract — `"start"` / `"end"` map to
     Tiptap, and a block id places the caret inside that block after mount
     (unknown ids fail gracefully). Previously every non-boolean coerced to
     `false`.
   - `highlightedBlockIds` is implemented: listed blocks get the
-    `ham-block-highlighted` class (themable via `--ham-highlight-bg`), updating
+    `hiermark-block-highlighted` class (themable via `--hiermark-highlight-bg`), updating
     in place on prop change.
-  - `HamCollaborationConfig` is now a discriminated union: pass
+  - `HiermarkCollaborationConfig` is now a discriminated union: pass
     `provider: "hocuspocus"` + `url`, or a custom `runtime` — no more fake
     transport fields to satisfy the type. (`createHocuspocusCollab` now takes
-    `HamCollaborationHocuspocusConfig`.)
-  - Removed (never implemented): `onBlockEvents` + `HamBlockEvent` types, the
-    `EmptyState` / `BlockGutter` editor slots, `HamBranchRequestEvent.nativeEvent`,
-    and `HamEditorSavePayload.revision`.
+    `HiermarkCollaborationHocuspocusConfig`.)
+  - Removed (never implemented): `onBlockEvents` + `HiermarkBlockEvent` types, the
+    `EmptyState` / `BlockGutter` editor slots, `HiermarkBranchRequestEvent.nativeEvent`,
+    and `HiermarkEditorSavePayload.revision`.
 
-  `@ham/canvas`:
+  `@hiermark/canvas`:
   - `handlers.createSurfaceFromBlock` is optional: a read-only / preview canvas
     mounts with no dummy handler; missing-handler branch requests dev-warn, and
     affordances are hidden unless the handler exists.
-  - `editorDefaults` is now the curated `HamCanvasEditorDefaults` (canvas-owned
+  - `editorDefaults` is now the curated `HiermarkCanvasEditorDefaults` (canvas-owned
     props like `value` / `onChange` / `onReady` are rejected at the type level
     instead of being silently overridden).
-  - `HamCanvasHandle.focusBlock` actually moves the caret into the requested
+  - `HiermarkCanvasHandle.focusBlock` actually moves the caret into the requested
     block (parking the focus until the surface's editor mounts, if needed).
   - Removed (never implemented): `behavior.pendingOperationMode` and
-    `HamCreateSurfaceFromBlockEvent.insertAfterEdgeId`.
+    `HiermarkCreateSurfaceFromBlockEvent.insertAfterEdgeId`.
 
 - a2ecb19: Canvas correctness batch — autosave can no longer lose edits, and behavior
   flags are enforced at the action layer:
@@ -56,10 +56,10 @@
   - `reorderSiblings` resolves `true`/`false` for success/failure, and the
     reorder undo/redo stacks only commit their bookkeeping on success — a
     rejected handler no longer desynchronizes undo history.
-  - `validateHamTopology` reports a new `duplicate-sibling-order` issue;
+  - `validateHiermarkTopology` reports a new `duplicate-sibling-order` issue;
     add-sibling inserters are keyed by visual gap (duplicate orders no longer
     drop an inserter); `revealBranchFromBlock`'s parameter is typed
-    `HamBlockId`.
+    `HiermarkBlockId`.
   - The active block id is passed only to the active surface's editor (block
     ids are surface-scoped; a colliding id in another expanded surface no longer
     lights up as active).
@@ -108,7 +108,7 @@
   operation (save/branch/reorder/delete) is in flight, rather than only dimming.
 - 683f977: Render orphan / detached surfaces. Surfaces with no edge path from the root
   were silently invisible; they now project into trailing `detached` columns
-  (new optional `detached` flag on `HamCanvasColumn`) behind a "Not linked to
+  (new optional `detached` flag on `HiermarkCanvasColumn`) behind a "Not linked to
   root" divider, so data is never lost from view.
 - 656cb8d: Canvas-level undo/redo for sibling reorders. After a drag-reorder, Cmd/Ctrl+Z
   reverts it (Cmd/Ctrl+Shift+Z or Ctrl+Y redoes) when the canvas chrome is
@@ -123,9 +123,9 @@
 
 ### Patch Changes
 
-- 357328b: Packaging fixes: `@ham/editor`'s exports map no longer carries redundant
+- 357328b: Packaging fixes: `@hiermark/editor`'s exports map no longer carries redundant
   top-level `types` keys that resolved ESM-flavored declarations under the
   `require` condition (CJS TypeScript consumers now get `index.d.cts`), and
-  `@ham/canvas` declares its `@ham/editor` peer as an explicit `>=0.1.0 <1.0.0`
+  `@hiermark/canvas` declares its `@hiermark/editor` peer as an explicit `>=0.1.0 <1.0.0`
   range instead of `workspace:^` (which made changesets major-bump the canvas on
   every editor minor).
