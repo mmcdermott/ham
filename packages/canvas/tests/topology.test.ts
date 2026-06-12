@@ -198,9 +198,14 @@ describe("projection split (buildProjectionContext / projectColumnsFromContext)"
 
 describe("pickDisplayMode (collapse preserves active path)", () => {
   const layout = resolveLayout();
-  it("keeps active-path surfaces visible even when collapsed", () => {
-    expect(pickDisplayMode("active", true, layout)).toBe("expanded");
-    expect(pickDisplayMode("ancestor", true, layout)).not.toBe("hidden");
+  it("compacts collapsed active-path surfaces to a rail (visible, never hidden)", () => {
+    // Collapsing an active-path surface (via the caret or Alt+C) compacts it to
+    // a header-only rail — still VISIBLE (the active path is never "hidden"),
+    // but the toggle actually does something. Previously collapse was a silent
+    // no-op on active-path surfaces (they stayed "expanded").
+    expect(pickDisplayMode("active", true, layout)).toBe("rail");
+    expect(pickDisplayMode("ancestor", true, layout)).toBe("rail");
+    expect(pickDisplayMode("active", true, layout)).not.toBe("hidden");
   });
   it("compacts collapsed unrelated surfaces to a rail/hidden", () => {
     expect(["rail", "hidden"]).toContain(pickDisplayMode("unrelated", true, layout));

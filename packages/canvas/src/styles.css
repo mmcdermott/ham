@@ -282,6 +282,13 @@
   justify-content: center;
 }
 .hiermark-add-sibling {
+  /* Fit the rail (one surface-gap tall) so the button never overflows the gap
+     slot — a taller button (line-height) used to spill ~3px below the last
+     rail and trip the column's overflow-y:auto into a phantom scrollbar. */
+  box-sizing: border-box;
+  height: var(--hiermark-surface-gap, 16px);
+  display: inline-flex;
+  align-items: center;
   border: 1px dashed transparent;
   background: transparent;
   color: var(--hiermark-muted);
@@ -289,7 +296,7 @@
   border-radius: 6px;
   padding: 0 10px;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1;
   /* Quiet until the column is hovered or the button is focused — mirrors the
      editor's branch button. */
   opacity: 0;

@@ -335,13 +335,20 @@ pre.block code {
 
 /* Custom add-sibling buttons used by the gallery demo ---------------------- */
 .gallery-add-labeled {
+  /* Fit within the add-sibling rail (one surface-gap tall) so it doesn't spill
+     below the last rail and trip a phantom column scrollbar. */
+  box-sizing: border-box;
+  height: var(--hiermark-surface-gap, 16px);
+  display: inline-flex;
+  align-items: center;
   border: 1px dashed var(--doc-accent, #6f5cff);
   background: #fff;
   color: var(--doc-accent, #6f5cff);
   border-radius: 999px;
-  padding: 1px 10px;
+  padding: 0 10px;
   font: inherit;
   font-size: 11px;
+  line-height: 1;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.12s ease;

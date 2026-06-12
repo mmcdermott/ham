@@ -892,8 +892,18 @@ function HiermarkEditorInner<AnnotationData = unknown>(
           }}
         />
       )}
-      {gutterEntries.map((entry) =>
-        createPortal(
+      {gutterEntries.map((entry) => {
+        // Portal into the LIVE gutter container in the editor DOM (looked up by
+        // its block id), not the cached `entry.container` object. The cached
+        // node can go stale — ProseMirror redraws or an editor remount (React
+        // StrictMode / concurrent rendering) can leave the entry pointing at a
+        // detached node while the real, in-DOM widget container is a different
+        // object — which silently dropped all gutter affordances. Fall back to
+        // the cached node when the lookup misses (e.g. mid-transition).
+        const live = editor?.view.dom.querySelector(
+          `[data-hiermark-gutter-for="${entry.blockId}"]`,
+        ) as HTMLElement | null;
+        return createPortal(
           <BlockGutterAffordances
             entry={entry}
             surfaceId={surfaceId}
@@ -902,10 +912,10 @@ function HiermarkEditorInner<AnnotationData = unknown>(
             onBranch={handleBranch}
             onOpenChild={handleOpenChild}
           />,
-          entry.container,
+          live ?? entry.container,
           entry.blockId,
-        ),
-      )}
+        );
+      })}
       <AnnotationPopover
         open={openAnnotation}
         type={openType}
