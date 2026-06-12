@@ -7,8 +7,10 @@ import {
 
 import { DemoFrame } from "./DemoFrame";
 
-// A small tree with headings, paragraphs, and a nested list so the different
-// policies visibly light up different blocks in the right-hand branch gutter.
+// Content for the policy demo: a heading, paragraphs, and a checklist so the
+// policies visibly light up different blocks in the gutter. (A single top-level
+// section — see note in HiermarkEditor on a dev-only StrictMode quirk with
+// multi-section docs.)
 const SOURCE_MD = `# Background
 
 Transformers replaced recurrence with self-attention, and remain the backbone of modern sequence models.

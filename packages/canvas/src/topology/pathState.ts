@@ -59,7 +59,11 @@ export function pickDisplayMode(
   // The active path must remain visible even when its columns are compacted.
   const onActivePath = pathState === "active" || pathState === "ancestor";
 
-  if (isCollapsed && !onActivePath) {
+  if (isCollapsed) {
+    // A collapsed surface compacts to a header-only rail. Active-path surfaces
+    // must stay VISIBLE (never "hidden"), but they can still collapse to a rail
+    // — previously the collapse caret was a silent no-op on them.
+    if (onActivePath) return "rail";
     return layout.inactiveColumnMode === "hidden" ? "hidden" : "rail";
   }
 
